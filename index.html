@@ -215,7 +215,7 @@ const dayStart=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
 const todayGames=()=>DB?DB.history.filter(h=>dayStart(h.end)===dayStart(Date.now())).reduce((s,h)=>s+h.cost,0):0;
 const todayCafe=()=>DB?DB.cafeSales.filter(s=>dayStart(s.time)===dayStart(Date.now())).reduce((s,x)=>s+x.price,0):0;
 const devEmoji=t=>(t==='PC')?'🖥️':(t==='XBOX')?'🕹️':'🎮';
-const itemEmoji=n=>/چای/.test(n)?'🍵':/قاوە/.test(n)?'☕':/ئاو/.test(n)?'💧':/پەپسی|کۆلا/.test(n)?'🥤':/ساندویچ/.test(n)?'🥪':/چپس/.test(n)?'🍟':'🛒';
+const itemEmoji=n=>/چای/.test(n)?'🍵':/قاوە/.test(n)?'☕':/ئاو/.test(n)?'💧':/پەپسی|کۆلا/.test(n)?'🥤':/ساندویچ/.test(n)?'🥪':/چپس/.test(n)?'🍟':'';
 function toast(m,c){const t=document.createElement('div');t.className='toast '+(c||'');t.textContent=m;document.getElementById('toasts').appendChild(t);setTimeout(()=>t.remove(),2600);}
 function openModal(h){document.getElementById('ov').innerHTML='<div class="modal">'+h+'</div>';document.getElementById('ov').classList.add('show');}
 function closeModal(){document.getElementById('ov').classList.remove('show');}
@@ -285,7 +285,6 @@ function renderCafe(){if(!DB)return;const canMg=CU.role!=='user';document.getEle
 /* ===== CUSTOMERS + DEBT (نوێ: مۆداڵی پارەدان بەشێک یان تەواو) ===== */
 function renderCustomers(){if(!DB)return;const m={};DB.history.forEach(h=>{const o=m[h.customer]||(m[h.customer]={n:h.customer,v:0,t:0,l:0});o.v++;o.t+=h.cost;o.l=Math.max(o.l,h.end);});const arr=Object.values(m).sort((a,b)=>b.t-a.t);document.getElementById('custTable').innerHTML='<thead><tr><th>مشتری</th><th>ژمارەی یاری</th><th>کۆی خەرجی</th><th>قەرز</th><th>دوایی سەردان</th></tr></thead><tbody>'+(arr.length?arr.map(c=>{const debt=DB.debts[c.n]||0;const payBtn=(debt>0)?'<button class="btn green mini" onclick="askPayDebt(\''+c.n.replace(/'/g,"\\'")+'\')">💵 پارەدان</button>':'';return'<tr><td><b>👤 '+c.n+'</b></td><td>'+c.v+'</td><td><b>'+fmtMoney(c.t)+'</b></td><td>'+(debt>0?'<b style="color:#ff8a95">'+fmtMoney(debt)+' دینار</b> '+payBtn:'<span class="mut">—</span>')+'</td><td>'+fmtDate(c.l)+' '+fmtTime(c.l)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="mut" style="text-align:center">هیچ مشترییەک نییە.</td></tr>')+'</tbody>';}
 
-/* مۆداڵی پارەدانی قەرز — دەتوانیت بەشێک یان تەواوی بدەیتەوە */
 function askPayDebt(name){const total=DB.debts[name]||0;if(total<=0){toast('هیچ قەرزێک نییە','blue');return;}openModal('<h3>💵 پارەدانی قەرز — '+name+'</h3><div class="sum"><span>کۆی قەرز</span><b style="color:#ff8a95">'+fmtMoney(total)+' دینار</b></div><div class="f-group"><label>بڕی پارەدان (دینار)</label><input id="payAmt" type="number" value="'+total+'" max="'+total+'"><div class="demo-row" style="justify-content:flex-start;margin-top:8px"><span class="demo-chip" onclick="document.getElementById(\'payAmt\').value='+total+'">هەمووی</span><span class="demo-chip" onclick="document.getElementById(\'payAmt\').value=Math.floor('+total+'/2)">نیوەی</span></div></div><div class="mrow"><button class="btn green" onclick="doPayDebt(\''+name.replace(/'/g,"\\'")+'\')">✅ پشتڕاستکردنەوە</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>');setTimeout(()=>{const el=document.getElementById('payAmt');if(el)el.focus();},50);}
 function doPayDebt(name){const total=DB.debts[name]||0;const amt=parseInt(document.getElementById('payAmt').value)||0;if(amt<=0){toast('بڕێکی دروست بنووسە','red');return;}if(amt>total){toast('بڕەکە لە قەرزەکە زیاترە!','red');return;}DB.debts[name]=total-amt;if(DB.debts[name]<=0)DB.debts[name]=0;save();closeModal();renderCustomers();toast('💵 '+fmtMoney(amt)+' دینار وەرگیرا — '+(DB.debts[name]>0?('ماوە: '+fmtMoney(DB.debts[name])):'قەرز تەواو بوو ✅'));}
 
@@ -313,13 +312,35 @@ function resetData(){confirmBox('هەموو داتاکان دەگەڕێنەوە 
 
 function drawChart(cv,labels,values,color){if(!cv)return;const dpr=window.devicePixelRatio||1,W=cv.clientWidth||600,H=cv.clientHeight||230;cv.width=W*dpr;cv.height=H*dpr;const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,W,H);const pL=46,pR=14,pT=14,pB=28,max=Math.max(...values,1)*1.15,iw=W-pL-pR,ih=H-pT-pB;c.font='11px Vazirmatn,Tahoma';for(let i=0;i<=4;i++){const y=pT+ih*i/4;c.strokeStyle='rgba(140,160,220,.12)';c.beginPath();c.moveTo(pL,y);c.lineTo(W-pR,y);c.stroke();const v=Math.round(max*(1-i/4));c.fillStyle='#93a0c0';c.textAlign='right';c.fillText(v>=1000?Math.round(v/1000)+'K':v,pL-8,y+4);}const n=values.length,X=i=>pL+(n<2?iw/2:iw*i/(n-1)),Y=v=>pT+ih*(1-v/max);const g=c.createLinearGradient(0,pT,0,H);g.addColorStop(0,color+'55');g.addColorStop(1,color+'00');c.beginPath();values.forEach((v,i)=>i?c.lineTo(X(i),Y(v)):c.moveTo(X(i),Y(v)));c.lineTo(X(n-1),H-pB);c.lineTo(X(0),H-pB);c.closePath();c.fillStyle=g;c.fill();c.beginPath();values.forEach((v,i)=>i?c.lineTo(X(i),Y(v)):c.moveTo(X(i),Y(v)));c.strokeStyle=color;c.lineWidth=2.5;c.lineJoin='round';c.stroke();c.textAlign='center';values.forEach((v,i)=>{c.beginPath();c.arc(X(i),Y(v),4,0,7);c.fillStyle=color;c.fill();c.strokeStyle='#0b0e17';c.lineWidth=2;c.stroke();c.fillStyle='#93a0c0';c.fillText(labels[i],X(i),H-8);});}
 
-/* ڕێگری لە زووم (مۆبایل + دێسکتۆپ) */
-document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','-','=','0'].includes(e.key))e.preventDefault();});
-document.addEventListener('gesturestart',e=>e.preventDefault());
+/* ===== ڕێگری لە زووم — تەنها بۆ USER (شاگرد) ===== */
+function setupZoomBlock(){
+  if(!CU)return;
+  if(CU.role==='user'){
+    document.body.style.touchAction='none';
+    document.body.style.overflow='auto';
+    window.__zoomWheelHandler=function(e){e.preventDefault();};
+    window.__zoomKeyHandler=function(e){if((e.ctrlKey||e.metaKey)&&['+','-','=','0'].includes(e.key))e.preventDefault();};
+    window.__zoomGestureHandler=function(e){e.preventDefault();};
+    window.addEventListener('wheel',window.__zoomWheelHandler,{passive:false});
+    window.addEventListener('keydown',window.__zoomKeyHandler);
+    window.addEventListener('gesturestart',window.__zoomGestureHandler);
+    window.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault();},{passive:false});
+  }else{
+    document.body.style.touchAction='manipulation';
+    if(window.__zoomWheelHandler){window.removeEventListener('wheel',window.__zoomWheelHandler);window.__zoomWheelHandler=null;}
+    if(window.__zoomKeyHandler){window.removeEventListener('keydown',window.__zoomKeyHandler);window.__zoomKeyHandler=null;}
+    if(window.__zoomGestureHandler){window.removeEventListener('gesturestart',window.__zoomGestureHandler);window.__zoomGestureHandler=null;}
+  }
+}
 
 setInterval(()=>{const n=new Date();const hd=document.getElementById('hDate'),ht=document.getElementById('hTime');if(hd)hd.textContent=n.getFullYear()+'/'+p2(n.getMonth()+1)+'/'+p2(n.getDate());if(ht)ht.textContent=p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());if(!DB)return;const now=Date.now();document.querySelectorAll('[data-timer]').forEach(el=>{const s=sessOf(el.dataset.timer);if(s)el.textContent=fmtDur((now-s.start)/1000);});document.querySelectorAll('[data-rem]').forEach(el=>{const s=sessOf(el.dataset.rem);if(!s||!s.limit)return;const rem=s.limit-(now-s.start)/1000;el.classList.remove('ok','warn','over','blink');if(rem>300){el.classList.add('ok');el.textContent='ماوە: '+fmtDur(rem);}else if(rem>=0){el.classList.add('warn');el.textContent='ماوە: '+fmtDur(rem);}else{el.classList.add('over','blink');el.textContent='🔔 تەواوبوو +'+fmtDur(-rem);}});checkAlarms();if(alarmPending.length&&document.getElementById('alarmOv').classList.contains('show'))renderAlarm();},1000);
 window.addEventListener('resize',()=>{if(CU)renderPage(page);});
+
+/* ===== INIT ===== */
+const origEnterApp=enterApp;
+enterApp=function(){origEnterApp();setupZoomBlock();};
+const origDoLogout=doLogout;
+doLogout=function(){if(window.__zoomWheelHandler){window.removeEventListener('wheel',window.__zoomWheelHandler);window.__zoomWheelHandler=null;}if(window.__zoomKeyHandler){window.removeEventListener('keydown',window.__zoomKeyHandler);window.__zoomKeyHandler=null;}if(window.__zoomGestureHandler){window.removeEventListener('gesturestart',window.__zoomGestureHandler);window.__zoomGestureHandler=null;}document.body.style.touchAction='manipulation';origDoLogout();};
 
 startApp();
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
