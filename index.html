@@ -203,9 +203,18 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-/* ===== تەنها ئۆفلاین — Firebase نییە ===== */
-const LS_KEY='gc_db_v8';
+const LS_KEY='gc_db_v9';
 let DB=null,CU=null,page='dashboard';
+
+/* ===== نوێ: وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک ===== */
+const DEV_IMAGES={
+  'PC':'https://i.ibb.co/twDqJsjW/image.png',
+  'XBOX':'https://i.ibb.co/5XNhHFnD/image.png',
+  'PS4':'https://i.ibb.co/spXmHLBz/image.png',
+  'PS5':'https://i.ibb.co/kgtjrxMF/image.png'
+};
+function devImageFor(type){return DEV_IMAGES[type]||'';}
+
 const ROLE_LBL={super:'👔 بەڕێوەبەر',admin:'🏪 خاوەنی دوکان',user:'🧑 شاگرد'};
 const PERMS={super:['dashboard','devices','sessions','cafe','customers','history','reports','settings'],admin:['dashboard','devices','sessions','cafe','customers','history','reports','settings'],user:['dashboard','sessions','cafe','customers']};
 const NAV=[
@@ -231,7 +240,6 @@ function seed(){
   };
 }
 
-/* ===== نوێ: پاشەکەوتی پارێزراو (ئەگەر بیرگە پڕ بوو، بەبێ وێنە پاشەکەوت دەکات) ===== */
 let saveWarned=false;
 function save(){
   if(!DB)return;
@@ -243,17 +251,13 @@ function save(){
       const slim=JSON.parse(JSON.stringify(data));
       (slim.devices||[]).forEach(d=>{d.image='';});
       localStorage.setItem(LS_KEY,JSON.stringify(slim));
-      if(!saveWarned){saveWarned=true;toast('⚠️ بیرگەی براوزەر پڕە! وێنەی ئامێرەکان پاشەکەوت ناکرێن','red');}
+      if(!saveWarned){saveWarned=true;toast('⚠️ بیرگەی براوزەر پڕە!','red');}
     }catch(e2){console.warn('save failed',e2);}
   }
 }
 
-function manualSave(){
-  save();
-  toast('✅ داتاکان پاشەکەوتکران!');
-}
+function manualSave(){save();toast('✅ داتاکان پاشەکەوتکران!');}
 
-/* ===== نوێ: پەستاندنی وێنە خۆکارانە (بچووککردنەوە بۆ ٤٠٠px) ===== */
 function compressImage(file,maxW,quality,cb){
   const reader=new FileReader();
   reader.onload=function(e){
@@ -311,7 +315,7 @@ const calcCost=(rate,dur)=>Math.max(500,Math.round(dur/3600*rate/250)*250);
 const dayStart=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
 const todayGames=()=>DB?DB.history.filter(h=>dayStart(h.end)===dayStart(Date.now())).reduce((s,h)=>s+h.cost,0):0;
 const todayCafe=()=>DB?DB.cafeSales.filter(s=>dayStart(s.time)===dayStart(Date.now())).reduce((s,x)=>s+x.price,0):0;
-const devEmoji=t=>(t==='PC')?'🖥️':(t==='XBOX')?'🕹️':'';
+const devEmoji=t=>(t==='PC')?'🖥️':(t==='XBOX')?'🕹️':'🎮';
 
 function itemEmoji(n){
   if(!n)return '🛒';
@@ -347,21 +351,14 @@ function closeModal(){document.getElementById('ov').classList.remove('show');}
 function confirmBox(msg,fn){openModal('<h3>⚠️ دڵنیابوونەوە</h3><p style="color:var(--muted);font-size:14px">'+msg+'</p><div class="mrow"><button class="btn red" id="cfY">بەڵێ</button><button class="btn ghost" onclick="closeModal()">نەخێر</button></div>');document.getElementById('cfY').onclick=()=>{closeModal();fn();};}
 
 function toggleFS(){
-  if(!document.fullscreenElement){
-    (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement);
-  }else{
-    (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);
-  }
+  if(!document.fullscreenElement){(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement);}
+  else{(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document);}
 }
 
 function enableDesktopNeon(){
   if(window.innerWidth>=993){
     document.body.classList.add('desktop-neon');
-    setTimeout(()=>{
-      if(!document.fullscreenElement){
-        (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement).catch(()=>{});
-      }
-    },500);
+    setTimeout(()=>{if(!document.fullscreenElement){(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement).catch(()=>{});}},500);
   }
 }
 
@@ -410,8 +407,10 @@ function go(p){if(!CU||!PERMS[CU.role].includes(p))return;page=p;document.queryS
 function renderPage(p){if(!DB)return;if(p==='dashboard')renderDashboard();if(p==='devices')renderDevices();if(p==='sessions')renderSessions();if(p==='cafe')renderCafe();if(p==='customers')renderCustomers();if(p==='history')renderHistory();if(p==='reports')renderReports();if(p==='settings')renderSettings();}
 function renderAll(){buildSide();renderPage(page);}
 
+/* ===== نوێ: وێنە بەپێی جۆر + fallback بۆ ئیمۆجی ===== */
 function devImageHTML(d){
-  if(d.image){return '<div class="dev-img"><img src="'+d.image+'" alt="'+d.name+'"></div>';}
+  const src=d.image||devImageFor(d.type);
+  if(src){return '<div class="dev-img"><img src="'+src+'" alt="'+d.name+'" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=emoji>'+devEmoji(d.type)+'</span>\'"></div>';}
   return '<div class="dev-img"><span class="emoji">'+devEmoji(d.type)+'</span></div>';
 }
 
@@ -436,27 +435,38 @@ function devCard(d,withBtn){
 
 function renderDashboard(){if(!DB)return;const busy=DB.sessions.length,tot=DB.devices.length,gI=todayGames(),cI=todayCafe();document.getElementById('dashStats').innerHTML='<div class="stat st-blue"><div class="ico">🎮</div><div><span class="lbl">کۆی ئامێرەکان</span><b>'+tot+'</b><span>دستگاکان</span></div></div><div class="stat st-green"><div class="ico">🟢</div><div><span class="lbl">خەریک</span><b>'+busy+'</b><span>دستگاکان</span></div></div><div class="stat st-orange"><div class="ico">🪑</div><div><span class="lbl">بەتاڵ</span><b>'+(tot-busy)+'</b><span>دستگاکان</span></div></div><div class="stat st-pink"><div class="ico">💰</div><div><span class="lbl">کۆی داهاتی ئەمڕۆ</span><b>'+fmtMoney(gI+cI)+'</b><span>یاری: '+fmtMoney(gI)+' • کافێ: '+fmtMoney(cI)+'</span></div></div>';document.getElementById('dashDevs').innerHTML=DB.devices.length?DB.devices.map(d=>devCard(d,true)).join(''):'<p class="mut" style="grid-column:1/-1;text-align:center;padding:20px">هیچ ئامێرێک نییە. لە بەشی «ئامێرەکان» ئامێر زیاد بکە.</p>';const rec=[...DB.history].sort((a,b)=>b.end-a.end).slice(0,5);document.getElementById('dashRecent').innerHTML='<thead><tr><th>کات</th><th>ماوە</th><th>مشتری</th><th>ئامێر</th><th>نرخ</th></tr></thead><tbody>'+(rec.length?rec.map(h=>'<tr><td>'+fmtTime(h.end)+(h.debt?' <span class="badge b-red">قەرز</span>':'')+'</td><td class="t-num">'+fmtDur(h.dur)+'</td><td>'+h.customer+'</td><td>'+h.device+'</td><td><b>'+fmtMoney(h.cost)+'</b></td></tr>').join(''):'<tr><td colspan="5" class="mut" style="text-align:center">هیچ یارییەک تۆمارنەکراوە.</td></tr>')+'</tbody>';const rd=reportData('daily');document.getElementById('dashTotal').textContent=fmtMoney(rd.values.reduce((a,b)=>a+b,0));drawChart(document.getElementById('dashChart'),rd.labels,rd.values,'#5b8cff');}
 
-function renderDevices(){if(!DB)return;const canEdit=CU.role!=='user',canDel=CU.role==='admin'||CU.role==='super';document.getElementById('addDevBtn').style.display=canEdit?'':'none';document.getElementById('devTable').innerHTML='<thead><tr><th>وێنە</th><th>ئامێر</th><th>جۆر</th><th>نرخ (دینار/کات)</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+(DB.devices.length?DB.devices.map(d=>{const s=sessOf(d.id);let act=s?'<button class="btn red mini" onclick="askEnd(\''+d.id+'\')">کۆتایی</button>':'<button class="btn green mini" onclick="askStart(\''+d.id+'\')">دەستپێکردن</button>';if(canEdit)act+=' <button class="btn ghost mini" onclick="askDevice(\''+d.id+'\')">✏️</button>';if(canDel)act+=' <button class="btn ghost mini" style="color:var(--red)" onclick="askDelDev(\''+d.id+'\')">🗑️</button>';const imgCell=d.image?'<img src="'+d.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:8px">':'<span style="font-size:24px">'+devEmoji(d.type)+'</span>';return'<tr><td>'+imgCell+'</td><td><b>'+d.name+'</b></td><td><span class="badge b-blue">'+d.type+'</span></td><td>'+fmtMoney(d.rate)+'</td><td>'+(s?'<span class="badge b-green">خەریک</span>':'<span class="badge b-orange">بەتاڵ</span>')+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join(''):'<tr><td colspan="6" class="mut" style="text-align:center">هیچ ئامێرێک نییە. دوگمەی «+ زیادکردنی ئامێر» دابگرە.</td></tr>')+'</tbody>';}
+function renderDevices(){if(!DB)return;const canEdit=CU.role!=='user',canDel=CU.role==='admin'||CU.role==='super';document.getElementById('addDevBtn').style.display=canEdit?'':'none';document.getElementById('devTable').innerHTML='<thead><tr><th>وێنە</th><th>ئامێر</th><th>جۆر</th><th>نرخ (دینار/کات)</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+(DB.devices.length?DB.devices.map(d=>{const s=sessOf(d.id);let act=s?'<button class="btn red mini" onclick="askEnd(\''+d.id+'\')">کۆتایی</button>':'<button class="btn green mini" onclick="askStart(\''+d.id+'\')">دەستپێکردن</button>';if(canEdit)act+=' <button class="btn ghost mini" onclick="askDevice(\''+d.id+'\')">✏️</button>';if(canDel)act+=' <button class="btn ghost mini" style="color:var(--red)" onclick="askDelDev(\''+d.id+'\')">🗑️</button>';const tblImg=d.image||devImageFor(d.type);const imgCell=tblImg?'<img src="'+tblImg+'" style="width:40px;height:40px;object-fit:cover;border-radius:8px" onerror="this.outerHTML=\'<span style=font-size:24px>'+devEmoji(d.type)+'</span>\'">':'<span style="font-size:24px">'+devEmoji(d.type)+'</span>';return'<tr><td>'+imgCell+'</td><td><b>'+d.name+'</b></td><td><span class="badge b-blue">'+d.type+'</span></td><td>'+fmtMoney(d.rate)+'</td><td>'+(s?'<span class="badge b-green">خەریک</span>':'<span class="badge b-orange">بەتاڵ</span>')+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join(''):'<tr><td colspan="6" class="mut" style="text-align:center">هیچ ئامێرێک نییە. دوگمەی «+ زیادکردنی ئامێر» دابگرە.</td></tr>')+'</tbody>';}
+
+/* ===== نوێ: کاتێک جۆر دەگۆڕدرێت، وێنە خۆکارانە دادەنرێت ===== */
+function onDevTypeChange(){
+  const t=document.getElementById('devType').value;
+  const urlInput=document.getElementById('devImgUrl');
+  const preview=document.getElementById('devImgPreview');
+  const auto=devImageFor(t);
+  if(urlInput)urlInput.value=auto;
+  if(preview)preview.innerHTML=auto?'<img src="'+auto+'">':'<span class="mut">هیچ وێنەیەک نییە</span>';
+}
 
 function askDevice(id){
   const d=id?getDev(id):null;
   const canUpload=CU&&(CU.role==='admin'||CU.role==='super');
+  const initType=d?d.type:'PC';
+  const initImg=d?(d.image||devImageFor(d.type)):devImageFor('PC');
   openModal('<h3>'+(d?'✏️ گۆڕینی ئامێر':'+ زیادکردنی ئامێر')+'</h3>'+
     '<input type="hidden" id="devId" value="'+(d?d.id:'')+'">'+
     '<div class="f-group"><label>ناو</label><input id="devName" value="'+(d?d.name:'')+'" placeholder="وەک: PC-1"></div>'+
-    '<div class="f-group"><label>جۆر</label><select id="devType">'+['PS5','PS4','PC','XBOX'].map(t=>'<option'+(d&&d.type===t?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
+    '<div class="f-group"><label>جۆر (وێنە خۆکارانە دادەنرێت)</label><select id="devType" onchange="onDevTypeChange()">'+['PS5','PS4','PC','XBOX'].map(t=>'<option'+(initType===t?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
     '<div class="f-group"><label>نرخ (دینار / کاتژمێر)</label><input id="devRate" type="number" value="'+(d?d.rate:5000)+'"></div>'+
-    (canUpload?'<div class="f-group"><label>وێنەی ئامێر (URL یان فایل — خۆکارانە بچووک دەکرێتەوە)</label><input id="devImgUrl" placeholder="https://..." value="'+(d&&d.image?d.image:'')+'"><input type="file" id="devImgFile" accept="image/*" style="margin-top:8px" onchange="previewDevImg(this)"><div class="img-preview" id="devImgPreview">'+(d&&d.image?'<img src="'+d.image+'">':'<span class="mut">هیچ وێنەیەک نییە</span>')+'</div></div>':'')+
+    (canUpload?'<div class="f-group"><label>وێنەی ئامێر (خۆکارانە بەپێی جۆر — دەتوانیت بیگۆڕیت)</label><input id="devImgUrl" placeholder="https://..." value="'+initImg+'"><input type="file" id="devImgFile" accept="image/*" style="margin-top:8px" onchange="previewDevImg(this)"><div class="img-preview" id="devImgPreview">'+(initImg?'<img src="'+initImg+'">':'<span class="mut">هیچ وێنەیەک نییە</span>')+'</div></div>':'')+
     '<div class="mrow"><button class="btn green" onclick="doSaveDevice()">پاشەکەوت</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>');
 }
 
-/* ===== نوێ: وێنە پەستاوە دەکرێت (٤٠٠px / JPEG ٨٠٪) ===== */
 function previewDevImg(input){
   if(input.files&&input.files[0]){
     compressImage(input.files[0],400,0.8,function(url){
       const pv=document.getElementById('devImgPreview');if(pv)pv.innerHTML='<img src="'+url+'">';
       const u=document.getElementById('devImgUrl');if(u)u.value=url;
-      toast('🖼️ وێنەکە بچووککرایەوە بۆ پاشەکەوتکردنی باشتر');
+      toast('🖼️ وێنەکە بچووککرایەوە');
     });
   }
 }
@@ -464,7 +474,8 @@ function previewDevImg(input){
 function doSaveDevice(){
   const id=document.getElementById('devId').value,type=document.getElementById('devType').value,rate=parseInt(document.getElementById('devRate').value)||0,name=document.getElementById('devName').value.trim();
   if(rate<=0){toast('نرخ دروست بنووسە','red');return;}
-  const imgUrl=document.getElementById('devImgUrl')?document.getElementById('devImgUrl').value.trim():'';
+  let imgUrl=document.getElementById('devImgUrl')?document.getElementById('devImgUrl').value.trim():'';
+  if(!imgUrl)imgUrl=devImageFor(type);
   if(id){const d=getDev(id);if(d){d.type=type;d.rate=rate;if(name)d.name=name;d.image=imgUrl;}}
   else{const n=DB.devices.filter(x=>x.type===type).length+1;DB.devices.push({id:'d'+Date.now(),name:name||(type+' - '+n),type,rate,image:imgUrl});}
   save();closeModal();renderAll();toast('✅ ئامێر پاشەکەوتکرا');
@@ -505,10 +516,10 @@ function sellItem(id){const it=DB.cafeItems.find(x=>x.id===id);if(!it)return;DB.
 function pickEmoji(e){const el=document.getElementById('cItemEmoji');if(el)el.value=e;}
 function askCafeItem(id){
   const it=id?DB.cafeItems.find(x=>x.id===id):null;
-  const chips=['🍵','☕','💧','🥤','🧃','','🍊','','🍌','','🍟','','🍔','','🍰','','🍦','','🍪','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
+  const chips=['🍵','☕','💧','🥤','🧃','','🍊','','🍌','','','','🍔','','🍰','','','','🍪','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
   openModal('<h3>'+(it?'✏️ گۆڕینی کاڵا':'+ کاڵای نوێ')+'</h3>'+
     '<input type="hidden" id="cItemId" value="'+(it?it.id:'')+'">'+
-    '<div class="f-group"><label>١) ئیمۆجی (ئازاد — هەر ئیمۆجییەک بنووسە یان هەڵبژێرە)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
+    '<div class="f-group"><label>١) ئیمۆجی (ئازاد)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
     '<div class="f-group"><label>٢) ناوی کاڵا</label><input id="cItemName" value="'+(it?it.name:'')+'"></div>'+
     '<div class="f-group"><label>٣) نرخ (دینار)</label><input id="cItemPrice" type="number" value="'+(it?it.price:500)+'"></div>'+
     '<div class="mrow"><button class="btn green" onclick="doSaveCafeItem()">پاشەکەوت</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>');
@@ -554,7 +565,7 @@ function savePrintSettings(){
   toast('✅ ڕێکخستنی پرینت پاشەکەوتکرا');
 }
 
-function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.getElementById('usersPanel').style.display=sup?'':'none';document.getElementById('dataPanel').style.display=sup?'':'none';document.getElementById('ratesPanel').style.display=CU.role==='user'?'none':'';document.getElementById('printSettingsPanel').style.display=CU.role==='user'?'none':'';if(sup)document.getElementById('usersTable').innerHTML='<thead><tr><th>ناو</th><th>یوزەرنەیم</th><th>ڕۆڵ</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+DB.users.map(u=>{let act=(u.id!==CU.id)?'<button class="btn ghost mini" style="color:var(--red)" onclick="askDelUser('+u.id+')">🗑️</button>':'—';if(u.locked)act+=' <button class="btn green mini" onclick="unlockUser('+u.id+')">🔓 کردنەوە</button>';const status=u.locked?'<span class="badge b-red">🔒 بلۆک</span>':'<span class="badge b-green">چالاک</span>';return'<tr><td><b>'+u.name+'</b></td><td>'+u.username+'</td><td><span class="badge '+(u.role==='super'?'b-purple':u.role==='admin'?'b-blue':'b-green')+'">'+ROLE_LBL[u.role]+'</span></td><td>'+status+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join('')+'</tbody>';document.getElementById('ratesBox').innerHTML=DB.devices.length?DB.devices.map(d=>'<div class="sum" style="margin:0"><span>'+devEmoji(d.type)+' '+d.name+'</span><input type="number" data-rate="'+d.id+'" value="'+d.rate+'" style="width:90px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text)"></div>').join(''):'<p class="mut">هیچ ئامێرێک نییە بۆ گۆڕینی نرخ.</p>';if(DB&&DB.settings&&DB.settings.printSize){document.getElementById('printSize').value=DB.settings.printSize;}let perm='<div class="perm-card"><h4>🏪 خاوەنی دوکان</h4><ul><li>زیادکردن و گۆڕینی ئامێر و نرخ</li><li>🖼️ زیادکردنی وێنە بۆ ئامێرەکان (خۆکارانە بچووک دەکرێتەوە)</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>دەستپێکردن و کۆتاییهێنانی یاری</li><li>🖨️ چاپکردنی وەسڵ (USB/Bluetooth)</li><li>⚙️ ڕێکخستنی پرینت (58mm/80mm)</li><li>💾 پاشەکەوتکردنی دەستی داتاکان</li><li>بینینی داهات و مێژووی دوکانی خۆی</li><li>بینینی قازانجی هەر ڕۆژێک بە بەروار</li><li>سڕینەوەی داتای مانگ لە کۆتایی مانگدا</li><li>ناتوانێت بەڕێوەبەر یان خاوەنی دوکانی تر دروست بکات</li></ul></div><div class="perm-card"><h4>🧑 شاگرد</h4><ul><li>چوونەژوورەوە</li><li>بینینی: پێشخوان، یارییەکان، کافێ، مشترییان</li><li>دەستپێکردن و کۆتاییهێنانی یاری (لەگەڵ تۆمارکردنی قەرز)</li><li>💵 پارەدانەوەی قەرزی مشتری (بەشێک یان تەواو)</li><li>فرۆشتنی کافێ</li><li>ناتوانێت هیچ ڕێکخستنێک بگۆڕێت</li></ul></div>';if(sup)perm='<div class="perm-card"><h4>👔 بەڕێوەبەر</h4><ul><li>دروستکردن و سڕینەوەی خاوەنی دوکان</li><li>دروستکردن و سڕینەوەی شاگرد</li><li>کردنەوەی هەژماری بلۆککراو (پاش ٣ هەڵە)</li><li>زیادکردن و گۆڕینی ئامێرەکان</li><li>🖼️ زیادکردنی وێنە بۆ ئامێرەکان</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>گۆڕینی نرخەکان</li><li>بینینی هەموو داهات و ڕاپۆرتەکان</li><li>هەموو داتاکان بەڕێوەدەبات</li></ul></div>'+perm;document.getElementById('permGrid').innerHTML=perm;}
+function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.getElementById('usersPanel').style.display=sup?'':'none';document.getElementById('dataPanel').style.display=sup?'':'none';document.getElementById('ratesPanel').style.display=CU.role==='user'?'none':'';document.getElementById('printSettingsPanel').style.display=CU.role==='user'?'none':'';if(sup)document.getElementById('usersTable').innerHTML='<thead><tr><th>ناو</th><th>یوزەرنەیم</th><th>ڕۆڵ</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+DB.users.map(u=>{let act=(u.id!==CU.id)?'<button class="btn ghost mini" style="color:var(--red)" onclick="askDelUser('+u.id+')">🗑️</button>':'—';if(u.locked)act+=' <button class="btn green mini" onclick="unlockUser('+u.id+')">🔓 کردنەوە</button>';const status=u.locked?'<span class="badge b-red">🔒 بلۆک</span>':'<span class="badge b-green">چالاک</span>';return'<tr><td><b>'+u.name+'</b></td><td>'+u.username+'</td><td><span class="badge '+(u.role==='super'?'b-purple':u.role==='admin'?'b-blue':'b-green')+'">'+ROLE_LBL[u.role]+'</span></td><td>'+status+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join('')+'</tbody>';document.getElementById('ratesBox').innerHTML=DB.devices.length?DB.devices.map(d=>'<div class="sum" style="margin:0"><span>'+devEmoji(d.type)+' '+d.name+'</span><input type="number" data-rate="'+d.id+'" value="'+d.rate+'" style="width:90px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text)"></div>').join(''):'<p class="mut">هیچ ئامێرێک نییە بۆ گۆڕینی نرخ.</p>';if(DB&&DB.settings&&DB.settings.printSize){document.getElementById('printSize').value=DB.settings.printSize;}let perm='<div class="perm-card"><h4>🏪 خاوەنی دوکان</h4><ul><li>زیادکردن و گۆڕینی ئامێر و نرخ</li><li>🖼️ وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک (PC/XBOX/PS4/PS5)</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>دەستپێکردن و کۆتاییهێنانی یاری</li><li>🖨️ چاپکردنی وەسڵ (USB/Bluetooth)</li><li>⚙️ ڕێکخستنی پرینت (58mm/80mm)</li><li>💾 پاشەکەوتکردنی دەستی داتاکان</li><li>بینینی داهات و مێژووی دوکانی خۆی</li><li>سڕینەوەی داتای مانگ لە کۆتایی مانگدا</li><li>ناتوانێت بەڕێوەبەر یان خاوەنی دوکانی تر دروست بکات</li></ul></div><div class="perm-card"><h4>🧑 شاگرد</h4><ul><li>چوونەژوورەوە</li><li>بینینی: پێشخوان، یارییەکان، کافێ، مشترییان</li><li>دەستپێکردن و کۆتاییهێنانی یاری (لەگەڵ تۆمارکردنی قەرز)</li><li>💵 پارەدانەوەی قەرزی مشتری (بەشێک یان تەواو)</li><li>فرۆشتنی کافێ</li><li>ناتوانێت هیچ ڕێکخستنێک بگۆڕێت</li></ul></div>';if(sup)perm='<div class="perm-card"><h4>👔 بەڕێوەبەر</h4><ul><li>دروستکردن و سڕینەوەی خاوەنی دوکان</li><li>دروستکردن و سڕینەوەی شاگرد</li><li>کردنەوەی هەژماری بلۆککراو (پاش ٣ هەڵە)</li><li>زیادکردن و گۆڕینی ئامێرەکان</li><li>🖼️ وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>گۆڕینی نرخەکان</li><li>بینینی هەموو داهات و ڕاپۆرتەکان</li><li>هەموو داتاکان بەڕێوەدەبات</li></ul></div>'+perm;document.getElementById('permGrid').innerHTML=perm;}
 function unlockUser(id){const u=DB.users.find(x=>x.id===id);if(!u)return;u.locked=false;u.failCount=0;save();renderSettings();toast('🔓 هەژماری '+u.name+' کرایەوە');}
 function saveRates(){document.querySelectorAll('[data-rate]').forEach(i=>{const d=getDev(i.dataset.rate);if(d)d.rate=Math.max(0,parseInt(i.value)||0);});save();renderAll();toast('✅ نرخەکان پاشەکەوتکران');}
 function askUser(){openModal('<h3>+ زیادکردنی بەکارهێنەر</h3><div class="f-group"><label>ناو</label><input id="uName"></div><div class="f-group"><label>یوزەرنەیم</label><input id="uUser"></div><div class="f-group"><label>وشەی نهێنی</label><input id="uPass"></div><div class="f-group"><label>ڕۆڵ</label><select id="uRole"><option value="admin">🏪 خاوەنی دوکان</option><option value="user">🧑 شاگرد</option></select></div><div class="mrow"><button class="btn green" onclick="doSaveUser()">دروستکردن</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>');}
@@ -567,7 +578,6 @@ function drawChart(cv,labels,values,color){if(!cv)return;const dpr=window.device
 setInterval(()=>{const n=new Date();const hd=document.getElementById('hDate'),ht=document.getElementById('hTime');if(hd)hd.textContent=n.getFullYear()+'/'+p2(n.getMonth()+1)+'/'+p2(n.getDate());if(ht)ht.textContent=p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());if(!DB)return;const now=Date.now();document.querySelectorAll('[data-timer]').forEach(el=>{const s=sessOf(el.dataset.timer);if(s)el.textContent=fmtDur((now-s.start)/1000);});document.querySelectorAll('[data-rem]').forEach(el=>{const s=sessOf(el.dataset.rem);if(!s||!s.limit)return;const rem=s.limit-(now-s.start)/1000;el.classList.remove('ok','warn','over','blink');if(rem>300){el.classList.add('ok');el.textContent='ماوە: '+fmtDur(rem);}else if(rem>=0){el.classList.add('warn');el.textContent='ماوە: '+fmtDur(rem);}else{el.classList.add('over','blink');el.textContent='🔔 تەواوبوو +'+fmtDur(-rem);}});checkAlarms();if(alarmPending.length&&document.getElementById('alarmOv').classList.contains('show'))renderAlarm();},1000);
 window.addEventListener('resize',()=>{if(CU)renderPage(page);});
 
-/* ===== نوێ: پاشەکەوت لە کاتی داخستنی پەیج/براوزەر ===== */
 window.addEventListener('beforeunload',()=>{save();});
 window.addEventListener('pagehide',()=>{save();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save();});
