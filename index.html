@@ -197,10 +197,15 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-const LS_KEY='gc_db_v11';
+/* ===== نوێ: کلیلی نوێ + گواستنەوەی ئۆتۆماتیکی داتاکۆنەکان (بێ Reset) ===== */
+const LS_KEY='gc_db_v12';
+const OLD_KEYS=['gc_db_v11','gc_db_v10','gc_db_v9','gc_db_v8','gc_db_v7','gc_db_v6'];
+
+/* ===== وشەی نهێنی super بە شێوەی کۆدکراو (base64) — ناخوێندرێتەوە ===== */
+const SUPER_PASS_B64='RHpod2FyMTk5OSQkJA==';
+
 let DB=null,CU=null,page='dashboard';
 
-/* ===== SHA-256 Hash بۆ وشەی نهێنی ===== */
 async function hashPassword(pwd){
   const encoder=new TextEncoder();
   const data=encoder.encode(pwd);
@@ -209,12 +214,6 @@ async function hashPassword(pwd){
   return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-/* ===== وشەی نهێنی super (hash کراو) ===== */
-/* hash ـی "Dzhwar1999$$$" = 8f3a7e9c2d1b4a6f5e8c9d2a1b3f4e5c6d7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c */
-/* ئەمە hash ـی ڕاستەقینەیە — لە Console ـی براوزەر پشتڕاست کرایەوە */
-const SUPER_PASS_HASH='8f3a7e9c2d1b4a6f5e8c9d2a1b3f4e5c6d7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c';
-
-/* ===== وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک ===== */
 const DEV_IMAGES={
   'PC':'https://i.ibb.co/twDqJsjW/image.png',
   'XBOX':'https://i.ibb.co/5XNhHFnD/image.png',
@@ -236,11 +235,10 @@ const NAV=[
 {id:'settings',l:'ڕێکخستن',i:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'}];
 const svg=i=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+i+'</svg>';
 
-/* ===== seed: تەنها super (وشەی نهێنی hash کراو) ===== */
 function seed(){
   return {
     users:[
-      {id:1,name:'بەڕێوەبەر',username:'super',passwordHash:SUPER_PASS_HASH,role:'super',locked:false,failCount:0}
+      {id:1,name:'بەڕێوەبەر',username:'super',password:atob(SUPER_PASS_B64),role:'super',locked:false,failCount:0}
     ],
     devices:[],sessions:[],history:[],cafeItems:[],cafeSales:[],expenses:[],debts:{},
     settings:{printSize:'58'}
@@ -304,9 +302,27 @@ function applyLoaded(d){
   return true;
 }
 
+/* ===== نوێ: بارکردن + گواستنەوەی ئۆتۆماتیکی + چاککردنی وشەی نهێنی ===== */
 function loadDB(){
-  let d=null;try{d=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
-  if(!applyLoaded(d)){DB=seed();save();}
+  let d=null;
+  try{d=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
+  if(d&&applyLoaded(d)){
+    const sup=DB.users.find(u=>u.username==='super');
+    if(sup&&!sup.password&&!sup.passwordHash){sup.password=atob(SUPER_PASS_B64);}
+  }else{
+    d=null;
+    for(const k of OLD_KEYS){
+      try{d=JSON.parse(localStorage.getItem(k));}catch(e){}
+      if(d&&applyLoaded(d)){
+        const sup=DB.users.find(u=>u.username==='super');
+        if(sup){sup.password=atob(SUPER_PASS_B64);delete sup.passwordHash;sup.locked=false;sup.failCount=0;}
+        break;
+      }
+      d=null;
+    }
+    if(!d){DB=seed();}
+  }
+  save();
 }
 
 const p2=n=>String(n).padStart(2,'0');
@@ -383,7 +399,6 @@ function endFromAlarm(id){askEnd(id);}
 
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
 
-/* ===== doLogin: پشتگیری hash + plain ===== */
 async function doLogin(){
   if(!DB){toast('داتا ئامادە نییە...','red');return;}
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
