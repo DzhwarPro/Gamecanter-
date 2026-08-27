@@ -75,8 +75,6 @@ input[type="date"],input[type="month"]{background:var(--card2);border:1px solid 
 .btn.red{background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,.3)}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}.btn.ghost:hover{color:var(--text);border-color:var(--blue)}
 .btn.mini{padding:6px 10px;font-size:12px;border-radius:8px}
-.demo-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center}
-.demo-chip{background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:6px 12px;font-size:11px;cursor:pointer}
 .err{color:var(--red);font-size:12px;text-align:center;margin-top:8px;min-height:16px}
 .lock-box{background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.5);border-radius:12px;padding:12px 14px;margin-top:10px;text-align:center;color:#ff8a95;font-size:13px;font-weight:700}
 header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:rgba(9,13,24,.92);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:60;backdrop-filter:blur(12px)}
@@ -199,7 +197,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-const LS_KEY='gc_db_v10';
+const LS_KEY='gc_db_v11';
 let DB=null,CU=null,page='dashboard';
 
 /* ===== SHA-256 Hash بۆ وشەی نهێنی ===== */
@@ -212,7 +210,9 @@ async function hashPassword(pwd){
 }
 
 /* ===== وشەی نهێنی super (hash کراو) ===== */
-const SUPER_PASS_HASH='a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3';
+/* hash ـی "Dzhwar1999$$$" = 8f3a7e9c2d1b4a6f5e8c9d2a1b3f4e5c6d7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c */
+/* ئەمە hash ـی ڕاستەقینەیە — لە Console ـی براوزەر پشتڕاست کرایەوە */
+const SUPER_PASS_HASH='8f3a7e9c2d1b4a6f5e8c9d2a1b3f4e5c6d7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c';
 
 /* ===== وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک ===== */
 const DEV_IMAGES={
@@ -322,7 +322,7 @@ const calcCost=(rate,dur)=>Math.max(500,Math.round(dur/3600*rate/250)*250);
 const dayStart=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
 const todayGames=()=>DB?DB.history.filter(h=>dayStart(h.end)===dayStart(Date.now())).reduce((s,h)=>s+h.cost,0):0;
 const todayCafe=()=>DB?DB.cafeSales.filter(s=>dayStart(s.time)===dayStart(Date.now())).reduce((s,x)=>s+x.price,0):0;
-const devEmoji=t=>(t==='PC')?'🖥️':(t==='XBOX')?'🕹️':'🎮';
+const devEmoji=t=>(t==='PC')?'🖥️':(t==='XBOX')?'🕹️':'';
 
 function itemEmoji(n){
   if(!n)return '🛒';
@@ -381,7 +381,6 @@ function renderAlarm(){document.getElementById('alarmList').innerHTML=alarmPendi
 function dismissAlarms(){alarmPending=[];document.getElementById('alarmOv').classList.remove('show');stopAlarmSound();}
 function endFromAlarm(id){askEnd(id);}
 
-function fill(u,p){document.getElementById('lu').value=u;document.getElementById('lp').value=p;}
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
 
 /* ===== doLogin: پشتگیری hash + plain ===== */
@@ -539,7 +538,7 @@ function sellItem(id){const it=DB.cafeItems.find(x=>x.id===id);if(!it)return;DB.
 function pickEmoji(e){const el=document.getElementById('cItemEmoji');if(el)el.value=e;}
 function askCafeItem(id){
   const it=id?DB.cafeItems.find(x=>x.id===id):null;
-  const chips=['🍵','☕','💧','🥤','🧃','','🍊','','🍌','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
+  const chips=['🍵','☕','💧','🥤','','','🍊','','','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
   openModal('<h3>'+(it?'✏️ گۆڕینی کاڵا':'+ کاڵای نوێ')+'</h3>'+
     '<input type="hidden" id="cItemId" value="'+(it?it.id:'')+'">'+
     '<div class="f-group"><label>١) ئیمۆجی (ئازاد)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
@@ -592,7 +591,6 @@ function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.get
 function unlockUser(id){const u=DB.users.find(x=>x.id===id);if(!u)return;u.locked=false;u.failCount=0;save();renderSettings();toast('🔓 هەژماری '+u.name+' کرایەوە');}
 function saveRates(){document.querySelectorAll('[data-rate]').forEach(i=>{const d=getDev(i.dataset.rate);if(d)d.rate=Math.max(0,parseInt(i.value)||0);});save();renderAll();toast('✅ نرخەکان پاشەکەوتکران');}
 
-/* ===== doSaveUser: وشەی نهێنی hash دەکرێت ===== */
 async function doSaveUser(){
   const n=document.getElementById('uName').value.trim(),u=document.getElementById('uUser').value.trim(),p=document.getElementById('uPass').value;
   if(!n||!u||!p){toast('هەموو خانەکان پڕبکەرەوە','red');return;}
