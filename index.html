@@ -170,10 +170,6 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
     <div class="f-group"><label>وشەی نهێنی</label><input id="lp" type="password" placeholder="••••"></div>
     <button class="btn blue" onclick="doLogin()">چوونەژوورەوە ⬅</button>
     <div class="err" id="lerr"></div><div id="lockBox"></div>
-    <div class="demo-row">
-      <span class="demo-chip" onclick="fill('admin','1234')">🏪 خاوەنی دوکان</span>
-      <span class="demo-chip" onclick="fill('user','1234')">🧑 شاگرد</span>
-    </div>
   </div>
 </div>
 <div id="app" class="hidden">
@@ -203,10 +199,22 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-const LS_KEY='gc_db_v9';
+const LS_KEY='gc_db_v10';
 let DB=null,CU=null,page='dashboard';
 
-/* ===== نوێ: وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک ===== */
+/* ===== SHA-256 Hash بۆ وشەی نهێنی ===== */
+async function hashPassword(pwd){
+  const encoder=new TextEncoder();
+  const data=encoder.encode(pwd);
+  const hashBuffer=await crypto.subtle.digest('SHA-256',data);
+  const hashArray=Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ===== وشەی نهێنی super (hash کراو) ===== */
+const SUPER_PASS_HASH='a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3';
+
+/* ===== وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک ===== */
 const DEV_IMAGES={
   'PC':'https://i.ibb.co/twDqJsjW/image.png',
   'XBOX':'https://i.ibb.co/5XNhHFnD/image.png',
@@ -228,12 +236,11 @@ const NAV=[
 {id:'settings',l:'ڕێکخستن',i:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'}];
 const svg=i=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+i+'</svg>';
 
+/* ===== seed: تەنها super (وشەی نهێنی hash کراو) ===== */
 function seed(){
   return {
     users:[
-      {id:1,name:'بەڕێوەبەر',username:'super',password:'Dzhwar1999$$$',role:'super',locked:false,failCount:0},
-      {id:2,name:'خاوەنی دوکان',username:'admin',password:'1234',role:'admin',locked:false,failCount:0},
-      {id:3,name:'شاگرد',username:'user',password:'1234',role:'user',locked:false,failCount:0}
+      {id:1,name:'بەڕێوەبەر',username:'super',passwordHash:SUPER_PASS_HASH,role:'super',locked:false,failCount:0}
     ],
     devices:[],sessions:[],history:[],cafeItems:[],cafeSales:[],expenses:[],debts:{},
     settings:{printSize:'58'}
@@ -376,16 +383,34 @@ function endFromAlarm(id){askEnd(id);}
 
 function fill(u,p){document.getElementById('lu').value=u;document.getElementById('lp').value=p;}
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
-function doLogin(){
+
+/* ===== doLogin: پشتگیری hash + plain ===== */
+async function doLogin(){
   if(!DB){toast('داتا ئامادە نییە...','red');return;}
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
   const usr=DB.users.find(x=>x.username===u);
   if(!usr){document.getElementById('lerr').textContent='ناوی بەکارهێنەر یان وشەی نهێنی هەڵەیە!';return;}
   if(usr.locked){showLock('ئەم هەژمارە بلۆک کراوە. داوای کردنەوە لە بەڕێوەبەر (👔) بکە.');document.getElementById('lerr').textContent='';return;}
-  if(usr.password!==p){usr.failCount=(usr.failCount||0)+1;if(usr.failCount>=3){usr.locked=true;save();showLock('٣ هەڵە! ئەم هەژمارە بلۆک کرا.');document.getElementById('lerr').textContent='';return;}save();document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە! ('+(3-usr.failCount)+' هەوڵی ماوە)';return;}
+  
+  const inputHash=await hashPassword(p);
+  const isMatch=(usr.passwordHash&&usr.passwordHash===inputHash)||(usr.password&&usr.password===p);
+  
+  if(!isMatch){
+    usr.failCount=(usr.failCount||0)+1;
+    if(usr.failCount>=3){usr.locked=true;save();showLock('٣ هەڵە! ئەم هەژمارە بلۆک کرا.');document.getElementById('lerr').textContent='';return;}
+    save();document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە! ('+(3-usr.failCount)+' هەوڵی ماوە)';return;
+  }
+  
+  if(usr.password&&!usr.passwordHash){
+    usr.passwordHash=inputHash;
+    delete usr.password;
+    save();
+  }
+  
   usr.failCount=0;save();document.getElementById('lerr').textContent='';document.getElementById('lockBox').innerHTML='';
   CU=usr;sessionStorage.setItem('gc_cu',usr.id);enterApp();
 }
+
 function enterApp(){
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -407,7 +432,6 @@ function go(p){if(!CU||!PERMS[CU.role].includes(p))return;page=p;document.queryS
 function renderPage(p){if(!DB)return;if(p==='dashboard')renderDashboard();if(p==='devices')renderDevices();if(p==='sessions')renderSessions();if(p==='cafe')renderCafe();if(p==='customers')renderCustomers();if(p==='history')renderHistory();if(p==='reports')renderReports();if(p==='settings')renderSettings();}
 function renderAll(){buildSide();renderPage(page);}
 
-/* ===== نوێ: وێنە بەپێی جۆر + fallback بۆ ئیمۆجی ===== */
 function devImageHTML(d){
   const src=d.image||devImageFor(d.type);
   if(src){return '<div class="dev-img"><img src="'+src+'" alt="'+d.name+'" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<span class=emoji>'+devEmoji(d.type)+'</span>\'"></div>';}
@@ -437,7 +461,6 @@ function renderDashboard(){if(!DB)return;const busy=DB.sessions.length,tot=DB.de
 
 function renderDevices(){if(!DB)return;const canEdit=CU.role!=='user',canDel=CU.role==='admin'||CU.role==='super';document.getElementById('addDevBtn').style.display=canEdit?'':'none';document.getElementById('devTable').innerHTML='<thead><tr><th>وێنە</th><th>ئامێر</th><th>جۆر</th><th>نرخ (دینار/کات)</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+(DB.devices.length?DB.devices.map(d=>{const s=sessOf(d.id);let act=s?'<button class="btn red mini" onclick="askEnd(\''+d.id+'\')">کۆتایی</button>':'<button class="btn green mini" onclick="askStart(\''+d.id+'\')">دەستپێکردن</button>';if(canEdit)act+=' <button class="btn ghost mini" onclick="askDevice(\''+d.id+'\')">✏️</button>';if(canDel)act+=' <button class="btn ghost mini" style="color:var(--red)" onclick="askDelDev(\''+d.id+'\')">🗑️</button>';const tblImg=d.image||devImageFor(d.type);const imgCell=tblImg?'<img src="'+tblImg+'" style="width:40px;height:40px;object-fit:cover;border-radius:8px" onerror="this.outerHTML=\'<span style=font-size:24px>'+devEmoji(d.type)+'</span>\'">':'<span style="font-size:24px">'+devEmoji(d.type)+'</span>';return'<tr><td>'+imgCell+'</td><td><b>'+d.name+'</b></td><td><span class="badge b-blue">'+d.type+'</span></td><td>'+fmtMoney(d.rate)+'</td><td>'+(s?'<span class="badge b-green">خەریک</span>':'<span class="badge b-orange">بەتاڵ</span>')+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join(''):'<tr><td colspan="6" class="mut" style="text-align:center">هیچ ئامێرێک نییە. دوگمەی «+ زیادکردنی ئامێر» دابگرە.</td></tr>')+'</tbody>';}
 
-/* ===== نوێ: کاتێک جۆر دەگۆڕدرێت، وێنە خۆکارانە دادەنرێت ===== */
 function onDevTypeChange(){
   const t=document.getElementById('devType').value;
   const urlInput=document.getElementById('devImgUrl');
@@ -516,7 +539,7 @@ function sellItem(id){const it=DB.cafeItems.find(x=>x.id===id);if(!it)return;DB.
 function pickEmoji(e){const el=document.getElementById('cItemEmoji');if(el)el.value=e;}
 function askCafeItem(id){
   const it=id?DB.cafeItems.find(x=>x.id===id):null;
-  const chips=['🍵','☕','💧','🥤','🧃','','🍊','','🍌','','','','🍔','','🍰','','','','🍪','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
+  const chips=['🍵','☕','💧','🥤','🧃','','🍊','','🍌','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
   openModal('<h3>'+(it?'✏️ گۆڕینی کاڵا':'+ کاڵای نوێ')+'</h3>'+
     '<input type="hidden" id="cItemId" value="'+(it?it.id:'')+'">'+
     '<div class="f-group"><label>١) ئیمۆجی (ئازاد)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
@@ -568,8 +591,18 @@ function savePrintSettings(){
 function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.getElementById('usersPanel').style.display=sup?'':'none';document.getElementById('dataPanel').style.display=sup?'':'none';document.getElementById('ratesPanel').style.display=CU.role==='user'?'none':'';document.getElementById('printSettingsPanel').style.display=CU.role==='user'?'none':'';if(sup)document.getElementById('usersTable').innerHTML='<thead><tr><th>ناو</th><th>یوزەرنەیم</th><th>ڕۆڵ</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+DB.users.map(u=>{let act=(u.id!==CU.id)?'<button class="btn ghost mini" style="color:var(--red)" onclick="askDelUser('+u.id+')">🗑️</button>':'—';if(u.locked)act+=' <button class="btn green mini" onclick="unlockUser('+u.id+')">🔓 کردنەوە</button>';const status=u.locked?'<span class="badge b-red">🔒 بلۆک</span>':'<span class="badge b-green">چالاک</span>';return'<tr><td><b>'+u.name+'</b></td><td>'+u.username+'</td><td><span class="badge '+(u.role==='super'?'b-purple':u.role==='admin'?'b-blue':'b-green')+'">'+ROLE_LBL[u.role]+'</span></td><td>'+status+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join('')+'</tbody>';document.getElementById('ratesBox').innerHTML=DB.devices.length?DB.devices.map(d=>'<div class="sum" style="margin:0"><span>'+devEmoji(d.type)+' '+d.name+'</span><input type="number" data-rate="'+d.id+'" value="'+d.rate+'" style="width:90px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text)"></div>').join(''):'<p class="mut">هیچ ئامێرێک نییە بۆ گۆڕینی نرخ.</p>';if(DB&&DB.settings&&DB.settings.printSize){document.getElementById('printSize').value=DB.settings.printSize;}let perm='<div class="perm-card"><h4>🏪 خاوەنی دوکان</h4><ul><li>زیادکردن و گۆڕینی ئامێر و نرخ</li><li>🖼️ وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک (PC/XBOX/PS4/PS5)</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>دەستپێکردن و کۆتاییهێنانی یاری</li><li>🖨️ چاپکردنی وەسڵ (USB/Bluetooth)</li><li>⚙️ ڕێکخستنی پرینت (58mm/80mm)</li><li>💾 پاشەکەوتکردنی دەستی داتاکان</li><li>بینینی داهات و مێژووی دوکانی خۆی</li><li>سڕینەوەی داتای مانگ لە کۆتایی مانگدا</li><li>ناتوانێت بەڕێوەبەر یان خاوەنی دوکانی تر دروست بکات</li></ul></div><div class="perm-card"><h4>🧑 شاگرد</h4><ul><li>چوونەژوورەوە</li><li>بینینی: پێشخوان، یارییەکان، کافێ، مشترییان</li><li>دەستپێکردن و کۆتاییهێنانی یاری (لەگەڵ تۆمارکردنی قەرز)</li><li>💵 پارەدانەوەی قەرزی مشتری (بەشێک یان تەواو)</li><li>فرۆشتنی کافێ</li><li>ناتوانێت هیچ ڕێکخستنێک بگۆڕێت</li></ul></div>';if(sup)perm='<div class="perm-card"><h4>👔 بەڕێوەبەر</h4><ul><li>دروستکردن و سڕینەوەی خاوەنی دوکان</li><li>دروستکردن و سڕینەوەی شاگرد</li><li>کردنەوەی هەژماری بلۆککراو (پاش ٣ هەڵە)</li><li>زیادکردن و گۆڕینی ئامێرەکان</li><li>🖼️ وێنەی خۆکارانە بۆ هەر جۆرە ئامێرێک</li><li>🗑️ سڕینەوەی ئامێرەکان</li><li>گۆڕینی نرخەکان</li><li>بینینی هەموو داهات و ڕاپۆرتەکان</li><li>هەموو داتاکان بەڕێوەدەبات</li></ul></div>'+perm;document.getElementById('permGrid').innerHTML=perm;}
 function unlockUser(id){const u=DB.users.find(x=>x.id===id);if(!u)return;u.locked=false;u.failCount=0;save();renderSettings();toast('🔓 هەژماری '+u.name+' کرایەوە');}
 function saveRates(){document.querySelectorAll('[data-rate]').forEach(i=>{const d=getDev(i.dataset.rate);if(d)d.rate=Math.max(0,parseInt(i.value)||0);});save();renderAll();toast('✅ نرخەکان پاشەکەوتکران');}
+
+/* ===== doSaveUser: وشەی نهێنی hash دەکرێت ===== */
+async function doSaveUser(){
+  const n=document.getElementById('uName').value.trim(),u=document.getElementById('uUser').value.trim(),p=document.getElementById('uPass').value;
+  if(!n||!u||!p){toast('هەموو خانەکان پڕبکەرەوە','red');return;}
+  if(DB.users.find(x=>x.username===u)){toast('ئەم یوزەرنەیمە بەکارهاتووە!','red');return;}
+  const pwdHash=await hashPassword(p);
+  DB.users.push({id:Date.now(),name:n,username:u,passwordHash:pwdHash,role:document.getElementById('uRole').value,locked:false,failCount:0});
+  save();closeModal();renderSettings();toast('✅ بەکارهێنەر دروستکرا');
+}
+
 function askUser(){openModal('<h3>+ زیادکردنی بەکارهێنەر</h3><div class="f-group"><label>ناو</label><input id="uName"></div><div class="f-group"><label>یوزەرنەیم</label><input id="uUser"></div><div class="f-group"><label>وشەی نهێنی</label><input id="uPass"></div><div class="f-group"><label>ڕۆڵ</label><select id="uRole"><option value="admin">🏪 خاوەنی دوکان</option><option value="user">🧑 شاگرد</option></select></div><div class="mrow"><button class="btn green" onclick="doSaveUser()">دروستکردن</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>');}
-function doSaveUser(){const n=document.getElementById('uName').value.trim(),u=document.getElementById('uUser').value.trim(),p=document.getElementById('uPass').value;if(!n||!u||!p){toast('هەموو خانەکان پڕبکەرەوە','red');return;}if(DB.users.find(x=>x.username===u)){toast('ئەم یوزەرنەیمە بەکارهاتووە!','red');return;}DB.users.push({id:Date.now(),name:n,username:u,password:p,role:document.getElementById('uRole').value,locked:false,failCount:0});save();closeModal();renderSettings();toast('✅ بەکارهێنەر دروستکرا');}
 function askDelUser(id){const u=DB.users.find(x=>x.id===id);confirmBox('دڵنیایت لە سڕینەوەی <b>'+u.name+'</b>؟',()=>{DB.users=DB.users.filter(x=>x.id!==id);save();renderSettings();toast('سڕدرایەوە','red');});}
 function resetData(){confirmBox('هەموو داتاکان دەگەڕێنەوە بۆ دۆخی سەرەتایی (بەتاڵ). دڵنیایت؟',()=>{DB=seed();save();triggered={};dismissAlarms();renderAll();toast('♻️ داتا گەڕێندرایەوە بۆ سەرەتا','blue');});}
 
@@ -585,7 +618,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 loadDB();
 const cuId=sessionStorage.getItem('gc_cu');
 if(cuId){const u=DB.users.find(x=>x.id==cuId);if(u&&!u.locked){CU=u;enterApp();}}
-document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('lp').addEventListener('keydown',async e=>{if(e.key==='Enter')await doLogin();});
 </script>
 </body>
 </html>
