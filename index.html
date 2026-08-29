@@ -197,11 +197,8 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-/* ===== نوێ: کلیلی نوێ + گواستنەوەی ئۆتۆماتیکی داتاکۆنەکان (بێ Reset) ===== */
 const LS_KEY='gc_db_v12';
 const OLD_KEYS=['gc_db_v11','gc_db_v10','gc_db_v9','gc_db_v8','gc_db_v7','gc_db_v6'];
-
-/* ===== وشەی نهێنی super بە شێوەی کۆدکراو (base64) — ناخوێندرێتەوە ===== */
 const SUPER_PASS_B64='RHpod2FyMTk5OSQkJA==';
 
 let DB=null,CU=null,page='dashboard';
@@ -302,7 +299,6 @@ function applyLoaded(d){
   return true;
 }
 
-/* ===== نوێ: بارکردن + گواستنەوەی ئۆتۆماتیکی + چاککردنی وشەی نهێنی ===== */
 function loadDB(){
   let d=null;
   try{d=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
@@ -322,6 +318,8 @@ function loadDB(){
     }
     if(!d){DB=seed();}
   }
+  /* ===== نوێ: super هەرگیز بلۆک نابێت (ئەگەر بلۆککرابێت، خۆکارانە دەکرێتەوە) ===== */
+  if(DB)DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
   save();
 }
 
@@ -399,6 +397,7 @@ function endFromAlarm(id){askEnd(id);}
 
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
 
+/* ===== نوێ: super هەرگیز بلۆک نابێت — admin/user پاش ٣ هەڵە بلۆک دەبن ===== */
 async function doLogin(){
   if(!DB){toast('داتا ئامادە نییە...','red');return;}
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
@@ -411,8 +410,10 @@ async function doLogin(){
   
   if(!isMatch){
     usr.failCount=(usr.failCount||0)+1;
-    if(usr.failCount>=3){usr.locked=true;save();showLock('٣ هەڵە! ئەم هەژمارە بلۆک کرا.');document.getElementById('lerr').textContent='';return;}
-    save();document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە! ('+(3-usr.failCount)+' هەوڵی ماوە)';return;
+    if(usr.failCount>=3&&usr.role!=='super'){usr.locked=true;save();showLock('٣ هەڵە! ئەم هەژمارە بلۆک کرا.');document.getElementById('lerr').textContent='';return;}
+    save();
+    document.getElementById('lerr').textContent=(usr.role==='super')?'وشەی نهێنی هەڵەیە!':'وشەی نهێنی هەڵەیە! ('+(3-usr.failCount)+' هەوڵی ماوە)';
+    return;
   }
   
   if(usr.password&&!usr.passwordHash){
