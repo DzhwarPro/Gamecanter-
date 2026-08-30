@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#070b14">
 <title>Gaming Center - سیستمی بەڕێوەبردنی یاری</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+<!-- ===== نوێ: ئایکۆنی ئەپ (هەموو لە یەک فایل) ===== -->
+<link rel="icon" href="https://i.ibb.co/G3Wjywmz/image.png">
+<!-- ===== کۆتایی نوێ ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -197,6 +199,35 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
+/* ===== نوێ: PWA manifest + ئایکۆن (هەموو لە یەک فایل) ===== */
+(function(){
+  var ICON_URL='https://i.ibb.co/G3Wjywmz/image.png';
+  var manifest={
+    name:'Gaming Center',
+    short_name:'Gaming Center',
+    description:'سیستمی بەڕێوەبردنی یاری',
+    start_url:location.href,
+    display:'standalone',
+    background_color:'#070b14',
+    theme_color:'#070b14',
+    orientation:'portrait',
+    icons:[{src:ICON_URL,sizes:'512x512',type:'image/png',purpose:'any maskable'}]
+  };
+  var blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  var link=document.createElement('link');
+  link.rel='manifest';
+  link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+  var apple=document.createElement('link');
+  apple.rel='apple-touch-icon';
+  apple.href=ICON_URL;
+  document.head.appendChild(apple);
+  var meta=document.createElement('meta');
+  meta.name='apple-mobile-web-app-title';
+  meta.content='Gaming Center';
+  document.head.appendChild(meta);
+})();
+
 const LS_KEY='gc_db_v12';
 const OLD_KEYS=['gc_db_v11','gc_db_v10','gc_db_v9','gc_db_v8','gc_db_v7','gc_db_v6'];
 const SUPER_PASS_B64='RHpod2FyMTk5OSQkJA==';
@@ -318,7 +349,6 @@ function loadDB(){
     }
     if(!d){DB=seed();}
   }
-  /* ===== نوێ: super هەرگیز بلۆک نابێت (ئەگەر بلۆککرابێت، خۆکارانە دەکرێتەوە) ===== */
   if(DB)DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
   save();
 }
@@ -397,7 +427,6 @@ function endFromAlarm(id){askEnd(id);}
 
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
 
-/* ===== نوێ: super هەرگیز بلۆک نابێت — admin/user پاش ٣ هەڵە بلۆک دەبن ===== */
 async function doLogin(){
   if(!DB){toast('داتا ئامادە نییە...','red');return;}
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
@@ -554,7 +583,7 @@ function sellItem(id){const it=DB.cafeItems.find(x=>x.id===id);if(!it)return;DB.
 function pickEmoji(e){const el=document.getElementById('cItemEmoji');if(el)el.value=e;}
 function askCafeItem(id){
   const it=id?DB.cafeItems.find(x=>x.id===id):null;
-  const chips=['🍵','☕','💧','🥤','','','🍊','','','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
+  const chips=['🍵','','💧','','','','🍊','','','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
   openModal('<h3>'+(it?'✏️ گۆڕینی کاڵا':'+ کاڵای نوێ')+'</h3>'+
     '<input type="hidden" id="cItemId" value="'+(it?it.id:'')+'">'+
     '<div class="f-group"><label>١) ئیمۆجی (ئازاد)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
