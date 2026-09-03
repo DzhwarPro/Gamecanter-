@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#070b14">
 <title>Gaming Center - سیستمی بەڕێوەبردنی یاری</title>
-<!-- ===== نوێ: ئایکۆنی ئەپ (وێنەی نوێ) ===== -->
 <link rel="icon" href="https://i.ibb.co/fdJZY7G3/image.png">
+<!-- ===== نوێ: Firebase بۆ پاشەکەوتی ئۆفلاین ===== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <!-- ===== کۆتایی نوێ ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -199,7 +201,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-/* ===== نوێ: PWA manifest + ئایکۆن (وێنەی نوێ) ===== */
+/* ===== نوێ: Firebase بۆ پاشەکەوتی ئۆفلاین (زیادکراو) ===== */
 (function(){
   var ICON_URL='https://i.ibb.co/fdJZY7G3/image.png';
   var manifest={
@@ -227,6 +229,59 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
   meta.content='Gaming Center';
   document.head.appendChild(meta);
 })();
+
+/* ===== نوێ: Firebase Configuration (زیادکراو) ===== */
+var firebaseConfig = {
+  apiKey: "AIzaSyBTw5QIPtTRisWca_arDJav1Z_VPkT0Lms",
+  authDomain: "gamecanter-d0aed.firebaseapp.com",
+  databaseURL: "https://gamecanter-d0aed-default-rtdb.firebaseio.com",
+  projectId: "gamecanter-d0aed",
+  storageBucket: "gamecanter-d0aed.firebasestorage.app",
+  messagingSenderId: "425713142930",
+  appId: "1:425713142930:web:7e72aa520d06813c48ea4b",
+  measurementId: "G-JSBHCPD1KS"
+};
+
+var firebaseDB = null;
+var firebaseReady = false;
+
+try {
+  firebase.initializeApp(firebaseConfig);
+  firebaseDB = firebase.database();
+  firebaseReady = true;
+  console.log('✅ Firebase ئامادەیە');
+} catch(e) {
+  console.warn('⚠️ Firebase دەستی پێ نەکرد:', e);
+}
+
+/* ===== نوێ: پاشەکەوت بۆ Firebase (زیادکراو) ===== */
+function saveToFirebase() {
+  if (!firebaseReady || !DB) return;
+  try {
+    firebaseDB.ref('gaming_center/data').set(DB).catch(function(e){
+      console.warn('Firebase پاشەکەوت شکستی هێنا:', e);
+    });
+  } catch(e) {
+    console.warn('Firebase پاشەکەوت شکستی هێنا:', e);
+  }
+}
+
+/* ===== نوێ: بارکردن لە Firebase (زیادکراو) ===== */
+function loadFromFirebase(callback) {
+  if (!firebaseReady) { if(callback) callback(null); return; }
+  try {
+    firebaseDB.ref('gaming_center/data').once('value').then(function(snapshot){
+      if(callback) callback(snapshot.val());
+    }).catch(function(e){
+      console.warn('Firebase بارکردن شکستی هێنا:', e);
+      if(callback) callback(null);
+    });
+  } catch(e) {
+    console.warn('Firebase بارکردن شکستی هێنا:', e);
+    if(callback) callback(null);
+  }
+}
+/* ===== کۆتایی نوێ ===== */
 
 const LS_KEY='gc_db_v12';
 const OLD_KEYS=['gc_db_v11','gc_db_v10','gc_db_v9','gc_db_v8','gc_db_v7','gc_db_v6'];
@@ -287,6 +342,8 @@ function save(){
       if(!saveWarned){saveWarned=true;toast('⚠️ بیرگەی براوزەر پڕە!','red');}
     }catch(e2){console.warn('save failed',e2);}
   }
+  /* ===== نوێ: پاشەکەوت بۆ Firebase (زیادکراو) ===== */
+  if (typeof saveToFirebase === 'function') saveToFirebase();
 }
 
 function manualSave(){save();toast('✅ داتاکان پاشەکەوتکران!');}
@@ -331,6 +388,24 @@ function applyLoaded(d){
 }
 
 function loadDB(){
+  /* ===== نوێ: بارکردن لە Firebase (زیادکراو) ===== */
+  if (typeof loadFromFirebase === 'function') {
+    loadFromFirebase(function(fbData){
+      if (fbData) {
+        console.log('✅ داتا لە Firebase بارکرا');
+        if(applyLoaded(fbData)){
+          const sup=DB.users.find(u=>u.username==='super');
+          if(sup&&!sup.password&&!sup.passwordHash){sup.password=atob(SUPER_PASS_B64);}
+          if(DB)DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
+          save();
+          const cuId=sessionStorage.getItem('gc_cu');
+          if(cuId){const u=DB.users.find(x=>x.id==cuId);if(u&&!u.locked){CU=u;enterApp();}}
+          if(CU)renderAll();
+        }
+      }
+    });
+  }
+  
   let d=null;
   try{d=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
   if(d&&applyLoaded(d)){
