@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#070b14">
 <title>Gaming Center - سیستمی بەڕێوەبردنی یاری</title>
 <link rel="icon" href="https://i.ibb.co/fdJZY7G3/image.png">
-<!-- ===== نوێ: Firebase بۆ پاشەکەوتی ئۆفلاین ===== -->
+<!-- ===== Firebase SDK ===== -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<!-- ===== کۆتایی نوێ ===== -->
+<!-- ===== PWA Manifest ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -167,7 +167,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
   <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
   <div class="login-card">
     <div class="logo-big">🎮</div><h1>Gaming Center</h1>
-    <p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (ئۆفلاین 💾)</p>
+    <p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (Firebase ☁️)</p>
     <div class="f-group"><label>ناوی بەکارهێنەر</label><input id="lu" placeholder="username"></div>
     <div class="f-group"><label>وشەی نهێنی</label><input id="lp" type="password" placeholder="••••"></div>
     <button class="btn blue" onclick="doLogin()">چوونەژوورەوە ⬅</button>
@@ -192,7 +192,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
     <section id="pg-history"><div class="page-title">مێژووی یارییەکان</div><div class="panel"><h3>هەموو یارییە تەواوبووەکان <span class="badge b-green" id="histCount"></span> <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div style="overflow-x:auto"><table id="histTable"></table></div></div></section>
     <section id="pg-reports"><div class="page-title">ڕاپۆرتەکان</div><div class="stats" id="repStats"></div><div class="panel"><h3>ڕاپۆرتی داهات (یاری + کافێ) <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button><select id="repPeriod" onchange="renderReports()" style="background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 12px"><option value="daily">ڕۆژانە</option><option value="weekly">هەفتانە</option><option value="monthly">مانگانە</option></select></h3><canvas class="chart" id="repChart" style="height:280px"></canvas></div><div class="two-col" id="repAdminTools"><div class="panel"><h3>📅 قازانجی ڕۆژ بە بەروار <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="date" id="dayPick"><button class="btn blue" style="width:auto" onclick="showDay()">پیشاندان</button><button class="btn ghost" style="width:auto" onclick="pickToday()">ئەمڕۆ</button></div><div id="dayResult" style="margin-top:14px"></div></div><div class="panel"><h3>🗓️ سڕینەوەی داتای مانگ <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><p class="mut" style="margin-bottom:12px">لە کۆتایی مانگدا دەتوانیت هەموو داتای ئەو مانگە بسڕیتەوە.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input type="month" id="monthPick" onchange="showMonthInfo()"><button class="btn red" style="width:auto" onclick="askDelMonth()">🗑️ سڕینەوەی داتای مانگ</button></div><div id="monthInfo" style="margin-top:12px"></div></div></div></section>
     <section id="pg-settings"><div class="page-title">ڕێکخستن</div><div class="panel" id="usersPanel"><h3>بەکارهێنەران <button class="btn green mini" onclick="askUser()">+ زیادکردنی بەکارهێنەر</button> <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div style="overflow-x:auto"><table id="usersTable"></table></div></div><div class="panel" id="ratesPanel"><h3>گۆڕینی نرخەکان <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div id="ratesBox" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div><button class="btn blue" style="margin-top:14px;width:auto" onclick="saveRates()">💾 پاشەکەوتکردنی نرخەکان</button></div>
-    <div class="panel" id="printSettingsPanel"><h3>🖨️ ڕێکخستنی پرینت <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div class="f-group"><label>قەبارەی وەسڵ</label><select id="printSize" onchange="savePrintSettings()"><option value="58">58mm (پرینتەری بچووک)</option><option value="80">80mm (پرینتەری گەورە)</option></select></div><p class="mut">ئەم هەڵبژاردنە پاشەکەوت دەبێت لە ناو بەرنامەکەدا.</p></div>
+    <div class="panel" id="printSettingsPanel"><h3>🖨️ ڕێکخستنی پرینت <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><div class="f-group"><label>قەبارەی وەسڵ</label><select id="printSize" onchange="savePrintSettings()"><option value="58">58mm (پرینتەری بچووک)</option><option value="80">80mm (پرینتەری گەورە)</option></select></div><p class="mut">ئەم هەڵبژاردنە پاشەکەوت دەبێت لە Firebase.</p></div>
     <div class="panel"><h3>دەسەڵاتەکان</h3><div class="perm-grid" id="permGrid"></div></div><div class="panel" id="dataPanel"><h3>بەڕێوەبردنی داتا <button class="btn green mini" onclick="manualSave()">💾 پاشەکەوتکردن</button></h3><button class="btn red" onclick="resetData()">♻️ گەڕاندنەوەی داتای سەرەتایی</button></div></section>
   </main>
 </div>
@@ -201,36 +201,17 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-/* ===== نوێ: Firebase بۆ پاشەکەوتی ئۆفلاین (زیادکراو) ===== */
+/* ===== PWA Manifest ===== */
 (function(){
   var ICON_URL='https://i.ibb.co/fdJZY7G3/image.png';
-  var manifest={
-    name:'Gaming Center',
-    short_name:'Gaming Center',
-    description:'سیستمی بەڕێوەبردنی یاری',
-    start_url:location.href,
-    display:'standalone',
-    background_color:'#070b14',
-    theme_color:'#070b14',
-    orientation:'portrait',
-    icons:[{src:ICON_URL,sizes:'512x512',type:'image/png',purpose:'any maskable'}]
-  };
+  var manifest={name:'Gaming Center',short_name:'Gaming Center',description:'سیستمی بەڕێوەبردنی یاری',start_url:location.href,display:'standalone',background_color:'#070b14',theme_color:'#070b14',orientation:'portrait',icons:[{src:ICON_URL,sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
   var blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
-  var link=document.createElement('link');
-  link.rel='manifest';
-  link.href=URL.createObjectURL(blob);
-  document.head.appendChild(link);
-  var apple=document.createElement('link');
-  apple.rel='apple-touch-icon';
-  apple.href=ICON_URL;
-  document.head.appendChild(apple);
-  var meta=document.createElement('meta');
-  meta.name='apple-mobile-web-app-title';
-  meta.content='Gaming Center';
-  document.head.appendChild(meta);
+  var link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);document.head.appendChild(link);
+  var apple=document.createElement('link');apple.rel='apple-touch-icon';apple.href=ICON_URL;document.head.appendChild(apple);
+  var meta=document.createElement('meta');meta.name='apple-mobile-web-app-title';meta.content='Gaming Center';document.head.appendChild(meta);
 })();
 
-/* ===== نوێ: Firebase Configuration (زیادکراو) ===== */
+/* ===== Firebase Configuration ===== */
 var firebaseConfig = {
   apiKey: "AIzaSyBTw5QIPtTRisWca_arDJav1Z_VPkT0Lms",
   authDomain: "gamecanter-d0aed.firebaseapp.com",
@@ -251,10 +232,10 @@ try {
   firebaseReady = true;
   console.log('✅ Firebase ئامادەیە');
 } catch(e) {
-  console.warn('⚠️ Firebase دەستی پێ نەکرد:', e);
+  console.warn('❌ Firebase دەستی پێ نەکرد:', e);
 }
 
-/* ===== نوێ: پاشەکەوت بۆ Firebase (زیادکراو) ===== */
+/* ===== پاشەکەوت بۆ Firebase ===== */
 function saveToFirebase() {
   if (!firebaseReady || !DB) return;
   try {
@@ -266,7 +247,7 @@ function saveToFirebase() {
   }
 }
 
-/* ===== نوێ: بارکردن لە Firebase (زیادکراو) ===== */
+/* ===== بارکردن لە Firebase ===== */
 function loadFromFirebase(callback) {
   if (!firebaseReady) { if(callback) callback(null); return; }
   try {
@@ -281,12 +262,8 @@ function loadFromFirebase(callback) {
     if(callback) callback(null);
   }
 }
-/* ===== کۆتایی نوێ ===== */
 
-const LS_KEY='gc_db_v12';
-const OLD_KEYS=['gc_db_v11','gc_db_v10','gc_db_v9','gc_db_v8','gc_db_v7','gc_db_v6'];
 const SUPER_PASS_B64='RHpod2FyMTk5OSQkJA==';
-
 let DB=null,CU=null,page='dashboard';
 
 async function hashPassword(pwd){
@@ -328,25 +305,13 @@ function seed(){
   };
 }
 
-let saveWarned=false;
+/* ===== نوێ: تەنها Firebase (localStorage لابرا) ===== */
 function save(){
   if(!DB)return;
-  const data=JSON.parse(JSON.stringify(DB));
-  try{
-    localStorage.setItem(LS_KEY,JSON.stringify(data));
-  }catch(e){
-    try{
-      const slim=JSON.parse(JSON.stringify(data));
-      (slim.devices||[]).forEach(d=>{d.image='';});
-      localStorage.setItem(LS_KEY,JSON.stringify(slim));
-      if(!saveWarned){saveWarned=true;toast('⚠️ بیرگەی براوزەر پڕە!','red');}
-    }catch(e2){console.warn('save failed',e2);}
-  }
-  /* ===== نوێ: پاشەکەوت بۆ Firebase (زیادکراو) ===== */
   if (typeof saveToFirebase === 'function') saveToFirebase();
 }
 
-function manualSave(){save();toast('✅ داتاکان پاشەکەوتکران!');}
+function manualSave(){save();toast('✅ داتاکان پاشەکەوتکران لە Firebase!');}
 
 function compressImage(file,maxW,quality,cb){
   const reader=new FileReader();
@@ -387,8 +352,8 @@ function applyLoaded(d){
   return true;
 }
 
+/* ===== نوێ: تەنها Firebase (localStorage لابرا) ===== */
 function loadDB(){
-  /* ===== نوێ: بارکردن لە Firebase (زیادکراو) ===== */
   if (typeof loadFromFirebase === 'function') {
     loadFromFirebase(function(fbData){
       if (fbData) {
@@ -397,35 +362,20 @@ function loadDB(){
           const sup=DB.users.find(u=>u.username==='super');
           if(sup&&!sup.password&&!sup.passwordHash){sup.password=atob(SUPER_PASS_B64);}
           if(DB)DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
-          save();
           const cuId=sessionStorage.getItem('gc_cu');
           if(cuId){const u=DB.users.find(x=>x.id==cuId);if(u&&!u.locked){CU=u;enterApp();}}
           if(CU)renderAll();
         }
+      } else {
+        DB=seed();
+        save();
+        toast('⚠️ داتابەیس بەتاڵە — داتای سەرەتایی دروستکرا','blue');
       }
     });
+  } else {
+    DB=seed();
+    toast('❌ Firebase ئامادە نییە — ئینتەرنێت پشکنە','red');
   }
-  
-  let d=null;
-  try{d=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
-  if(d&&applyLoaded(d)){
-    const sup=DB.users.find(u=>u.username==='super');
-    if(sup&&!sup.password&&!sup.passwordHash){sup.password=atob(SUPER_PASS_B64);}
-  }else{
-    d=null;
-    for(const k of OLD_KEYS){
-      try{d=JSON.parse(localStorage.getItem(k));}catch(e){}
-      if(d&&applyLoaded(d)){
-        const sup=DB.users.find(u=>u.username==='super');
-        if(sup){sup.password=atob(SUPER_PASS_B64);delete sup.passwordHash;sup.locked=false;sup.failCount=0;}
-        break;
-      }
-      d=null;
-    }
-    if(!d){DB=seed();}
-  }
-  if(DB)DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
-  save();
 }
 
 const p2=n=>String(n).padStart(2,'0');
@@ -658,7 +608,7 @@ function sellItem(id){const it=DB.cafeItems.find(x=>x.id===id);if(!it)return;DB.
 function pickEmoji(e){const el=document.getElementById('cItemEmoji');if(el)el.value=e;}
 function askCafeItem(id){
   const it=id?DB.cafeItems.find(x=>x.id===id):null;
-  const chips=['🍵','','💧','','','','🍊','','','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
+  const chips=['🍵','','💧','','','','','','','','','','🍔','','🍰','','','','','🛒'].map(e=>'<span class="demo-chip" onclick="pickEmoji(\''+e+'\')">'+e+'</span>').join('');
   openModal('<h3>'+(it?'✏️ گۆڕینی کاڵا':'+ کاڵای نوێ')+'</h3>'+
     '<input type="hidden" id="cItemId" value="'+(it?it.id:'')+'">'+
     '<div class="f-group"><label>١) ئیمۆجی (ئازاد)</label><input id="cItemEmoji" value="'+(it&&it.emoji?it.emoji:'')+'" placeholder="وەک: 🧃"><div class="demo-row" style="justify-content:flex-start;margin-top:8px">'+chips+'</div></div>'+
@@ -728,10 +678,6 @@ function drawChart(cv,labels,values,color){if(!cv)return;const dpr=window.device
 
 setInterval(()=>{const n=new Date();const hd=document.getElementById('hDate'),ht=document.getElementById('hTime');if(hd)hd.textContent=n.getFullYear()+'/'+p2(n.getMonth()+1)+'/'+p2(n.getDate());if(ht)ht.textContent=p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());if(!DB)return;const now=Date.now();document.querySelectorAll('[data-timer]').forEach(el=>{const s=sessOf(el.dataset.timer);if(s)el.textContent=fmtDur((now-s.start)/1000);});document.querySelectorAll('[data-rem]').forEach(el=>{const s=sessOf(el.dataset.rem);if(!s||!s.limit)return;const rem=s.limit-(now-s.start)/1000;el.classList.remove('ok','warn','over','blink');if(rem>300){el.classList.add('ok');el.textContent='ماوە: '+fmtDur(rem);}else if(rem>=0){el.classList.add('warn');el.textContent='ماوە: '+fmtDur(rem);}else{el.classList.add('over','blink');el.textContent='🔔 تەواوبوو +'+fmtDur(-rem);}});checkAlarms();if(alarmPending.length&&document.getElementById('alarmOv').classList.contains('show'))renderAlarm();},1000);
 window.addEventListener('resize',()=>{if(CU)renderPage(page);});
-
-window.addEventListener('beforeunload',()=>{save();});
-window.addEventListener('pagehide',()=>{save();});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save();});
 
 loadDB();
 const cuId=sessionStorage.getItem('gc_cu');
