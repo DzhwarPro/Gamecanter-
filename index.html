@@ -8,6 +8,7 @@
 <link rel="icon" href="https://i.ibb.co/fdJZY7G3/image.png">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -161,7 +162,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
 <div class="login-card">
 <div class="logo-big">🎮</div><h1>Gaming Center</h1>
-<p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (🔒)</p>
+<p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (Firebase ☁️)</p>
 <div class="f-group"><label>ناوی بەکارهێنەر</label><input id="lu" placeholder="super"></div>
 <div class="f-group"><label>وشەی نهێنی</label><input id="lp" type="password" placeholder="••••"></div>
 <button class="btn blue" onclick="doLogin()">چوونەژوورەوە ⬅</button>
@@ -181,9 +182,9 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <section id="pg-dashboard"><div class="page-title">پێشخوان</div><div class="stats" id="dashStats"></div><div class="panel"><h3>ئامێرەکان</h3><div class="dev-grid" id="dashDevs"></div></div><div class="two-col"><div class="panel"><h3>مێژووی یارییەکان (دوایی ٥ یاری)</h3><div style="overflow-x:auto"><table id="dashRecent"></table></div></div><div class="panel"><h3>ڕاپۆرتی داهات <span class="badge b-blue">ڕۆژانە</span></h3><div class="two-col" style="grid-template-columns:auto 1fr;gap:14px;align-items:center"><div style="text-align:center"><span style="color:var(--muted);font-size:13px">کۆی داهات</span><div class="total-big" id="dashTotal">0</div><span style="color:var(--muted);font-size:12px">دینار</span></div><canvas class="chart" id="dashChart"></canvas></div></div></div></section>
 <section id="pg-devices"><div class="page-title">ئامێرەکان</div><div class="panel"><h3>لیستی ئامێرەکان <button class="btn green mini" id="addDevBtn" onclick="askDevice()">+ زیادکردنی ئامێر</button></h3><div style="overflow-x:auto"><table id="devTable"></table></div></div></section>
 <section id="pg-sessions"><div class="page-title">یارییەکان (خولەکان)</div><div class="panel"><h3>🟢 یارییە چالاکەکان</h3><div class="dev-grid" id="sessActive"></div></div><div class="panel"><h3>🟠 ئامێرە بەتاڵەکان</h3><div class="dev-grid" id="sessFree"></div></div></section>
-<section id="pg-cafe"><div class="page-title">کافێ و خەرجییەکان</div>
+<section id="pg-cafe"><div class="page-title">کafێ و خەرجییەکان</div>
 <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start">
-<div><div class="panel" id="cafeDevicesPanel" style="position:sticky;top:80px"><h3>🎮 ئامێرە چالاکەکان</h3><p class="mut" style="margin-bottom:12px">کرتە لە ئامێر بکە بۆ فرۆشتنی کافێ بەو مشترییە</p><div id="cafeDevices" style="display:flex;flex-direction:column;gap:10px"></div></div></div>
+<div><div class="panel" id="cafeDevicesPanel" style="position:sticky;top:80px"><h3>🎮 ئامێرە چالاکەکان</h3><p class="mut" style="margin-bottom:12px">کرتە لە ئامێر بکە بۆ فرۆشتنی کafێ بەو مشترییە</p><div id="cafeDevices" style="display:flex;flex-direction:column;gap:10px"></div></div></div>
 <div>
 <div class="panel"><h3>🛒 فرۆشتنی خێرا <span class="badge b-green">کرتە = فرۆشتن</span></h3>
 <div id="selectedCustomerInfo" style="display:none;margin-bottom:12px;padding:10px;background:var(--card2);border-radius:10px;border:1px solid var(--neon-blue)"></div>
@@ -220,10 +221,10 @@ var _FC={a:_e('AIzaSyBTw5QIPtTRisWca_arDJav1Z_VPkT0Lms'),b:_e('gamecanter-d0aed'
 
 var firebaseConfig={apiKey:_d(_FC.a),authDomain:_d(_FC.b)+'.firebaseapp.com',databaseURL:'https://'+_d(_FC.c)+'-default-rtdb.firebaseio.com',projectId:_d(_FC.d),storageBucket:_d(_FC.d)+'.firebasestorage.app',messagingSenderId:_d(_FC.e),appId:_d(_FC.f),measurementId:'G-JSBHCPD1KS'};
 
-var firebaseDB=null,firebaseReady=false;
-try{firebase.initializeApp(firebaseConfig);firebaseDB=firebase.database();firebaseReady=true;}catch(e){}
+var firebaseDB=null,firebaseReady=false,firebaseAuth=null;
+try{firebase.initializeApp(firebaseConfig);firebaseDB=firebase.database();firebaseAuth=firebase.auth();firebaseReady=true;}catch(e){}
 
-var _SP=_e('DZhaaa');
+var _SP=_e('Dzhwar1999$$$');
 const SUPER_PASS_B64=_d(_SP);
 let DB=null,CU=null,page='dashboard';
 let selectedDeviceId=null;
@@ -313,10 +314,27 @@ if(!username||!pass){document.getElementById('lerr').textContent='ناو و وش
 document.getElementById('lerr').textContent='چاوەڕێ بکە...';
 
 if(username==='super'){
-if(pass!==SUPER_PASS_B64&&pass!==_d(_SP)){
-document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە';
+const email='super@gaming.center';
+try{
+await firebaseAuth.signInWithEmailAndPassword(email,pass);
+}catch(e){
+if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'){
+try{
+await firebaseAuth.createUserWithEmailAndPassword(email,pass);
+toast('✅ هەژماری super دروستکرا','blue');
+}catch(e2){
+document.getElementById('lerr').textContent='هەڵە: '+e2.message;
 return;
 }
+}else if(e.code==='auth/too-many-requests'){
+document.getElementById('lerr').textContent='⚠️ زۆر هەوڵ — ٣٠ خولەک چاوەڕێ بکە';
+return;
+}else{
+document.getElementById('lerr').textContent='هەڵە: '+e.message;
+return;
+}
+}
+
 loadFromFirebase(function(fb){
 if(fb){
 if(applyLoaded(fb)){
@@ -370,7 +388,7 @@ enterApp();
 }
 
 function enterApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');document.getElementById('hAv').textContent=CU.name.charAt(0);document.getElementById('hName').textContent=CU.name;buildSide();go('dashboard');enableDesktopNeon();}
-function doLogout(){save();CU=null;sessionStorage.removeItem('gc_cu');dismissAlarms();selectedDeviceId=null;document.body.classList.remove('desktop-neon');if(document.fullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document).catch(()=>{});}document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');}
+function doLogout(){save();if(firebaseAuth)firebaseAuth.signOut().catch(function(){});CU=null;sessionStorage.removeItem('gc_cu');dismissAlarms();selectedDeviceId=null;document.body.classList.remove('desktop-neon');if(document.fullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document).catch(()=>{});}document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');}
 function buildSide(){if(!CU||!DB)return;const al=PERMS[CU.role];document.getElementById('side').innerHTML=NAV.filter(n=>{if(!al.includes(n.id))return false;if(n.adminOnly&&CU.role==='user')return false;return true;}).map(n=>'<div class="nav-item'+(n.id===page?' on':'')+'" data-p="'+n.id+'" onclick="go(\''+n.id+'\')">'+svg(n.i)+'<span>'+n.l+'</span></div>').join('')+'<div class="nav-item logout" onclick="doLogout()">'+svg('<path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>')+'<span>چوونەدەرەوە</span></div>';}
 function toggleSide(){document.getElementById('side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function go(p){if(!CU||!PERMS[CU.role].includes(p))return;page=p;document.querySelectorAll('section').forEach(s=>s.classList.remove('on'));document.getElementById('pg-'+p).classList.add('on');document.querySelectorAll('.nav-item[data-p]').forEach(n=>n.classList.toggle('on',n.dataset.p===p));document.getElementById('side').classList.remove('open');document.getElementById('scrim').classList.remove('show');renderPage(p);}
