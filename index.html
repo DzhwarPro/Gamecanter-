@@ -181,7 +181,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
   <div class="login-card">
     <div class="logo-big">🎮</div><h1>Gaming Center</h1>
     <p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (Firebase ☁️)</p>
-    <div class="f-group"><label>ئیمەیڵ</label><input id="lu" type="email" placeholder="super@gaming.com"></div>
+    <div class="f-group"><label>ناوی بەکارهێنەر</label><input id="lu" placeholder="super"></div>
     <div class="f-group"><label>وشەی نهێنی</label><input id="lp" type="password" placeholder="••••"></div>
     <button class="btn blue" onclick="doLogin()">چوونەژوورەوە ⬅</button>
     <div class="err" id="lerr"></div><div id="lockBox"></div>
@@ -244,12 +244,10 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
 <div id="ov" onclick="if(event.target===this)closeModal()"></div><div id="toasts"></div>
 <div id="printArea"></div>
 <script>
-/* ===== شفرەکردنی نهێنی (XOR + Base64) ===== */
 var _K='GmCntr2024SecretKey!@#';
 function _d(s){try{var b=atob(s),o='';for(var i=0;i<b.length;i++){o+=String.fromCharCode(b.charCodeAt(i)^_K.charCodeAt(i%_K.length));}return o;}catch(e){return '';}}
 function _e(s){var o='';for(var i=0;i<s.length;i++){o+=String.fromCharCode(s.charCodeAt(i)^_K.charCodeAt(i%_K.length));}return btoa(o);}
 
-/* ===== PWA Manifest ===== */
 (function(){
   var ICON_URL='https://i.ibb.co/fdJZY7G3/image.png';
   var manifest={name:'Gaming Center',short_name:'Gaming Center',description:'سیستمی بەڕێوەبردنی یاری',start_url:location.href,display:'standalone',background_color:'#070b14',theme_color:'#070b14',orientation:'portrait',icons:[{src:ICON_URL,sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
@@ -259,8 +257,6 @@ function _e(s){var o='';for(var i=0;i<s.length;i++){o+=String.fromCharCode(s.cha
   var meta=document.createElement('meta');meta.name='apple-mobile-web-app-title';meta.content='Gaming Center';document.head.appendChild(meta);
 })();
 
-/* ===== Firebase Config (شفرەکرَاو) ===== */
-/* بۆ بەدەستهێنانی نرخە شفرەکرَاوەکان: لە Console بنووسە _e('نرخەکەت') */
 var _FC={
   a:_e('AIzaSyBTw5QIPtTRisWca_arDJav1Z_VPkT0Lms'),
   b:_e('gamecanter-d0aed'),
@@ -287,12 +283,9 @@ try {
   firebaseDB = firebase.database();
   firebaseAuth = firebase.auth();
   firebaseReady = true;
-  console.log('✅ Firebase ئامادەیە');
-} catch(e) { console.warn('❌ Firebase:', e); }
+} catch(e) {}
 
-/* ===== وشەی نهێنی Super (شفرەکرَاو) ===== */
 var _SP=_e('Dzhwar1999$$$');
-
 const SUPER_PASS_B64=_d(_SP);
 let DB=null,CU=null,page='dashboard';
 let selectedDeviceId=null;
@@ -319,8 +312,8 @@ const svg=i=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 function seed(){ return { users:[{id:1,name:'بەڕێوەبەر',username:'super',password:SUPER_PASS_B64,role:'super',locked:false,failCount:0}], devices:[],sessions:[],history:[],cafeItems:[],cafeSales:[],expenses:[],debts:{}, settings:{printSize:'58'} }; }
 
 function save(){ if(!DB)return; saveToFirebase(); }
-function saveToFirebase(){ if(!firebaseReady||!DB)return; try{ firebaseDB.ref('gaming_center/data').set(DB).catch(function(e){console.warn('FB save:',e);}); }catch(e){ console.warn('FB save:',e); } }
-function loadFromFirebase(cb){ if(!firebaseReady){ if(cb)cb(null); return; } try{ firebaseDB.ref('gaming_center/data').once('value').then(function(s){ if(cb)cb(s.val()); }).catch(function(e){ console.warn('FB load:',e); if(cb)cb(null); }); }catch(e){ if(cb)cb(null); } }
+function saveToFirebase(){ if(!firebaseReady||!DB)return; try{ firebaseDB.ref('gaming_center/data').set(DB).catch(function(){}); }catch(e){} }
+function loadFromFirebase(cb){ if(!firebaseReady){ if(cb)cb(null); return; } try{ firebaseDB.ref('gaming_center/data').once('value').then(function(s){ if(cb)cb(s.val()); }).catch(function(){ if(cb)cb(null); }); }catch(e){ if(cb)cb(null); } }
 
 function canSeeData(item){ if(!CU)return false; if(CU.role==='super'||CU.role==='admin')return true; if(CU.role==='user')return item.createdBy===CU.id; return false; }
 function canSeeDevice(d){ if(canSeeData(d))return true; if(CU&&CU.role==='user'){const o=DB.users.find(u=>u.id===d.createdBy); if(o&&(o.role==='admin'||o.role==='super'))return true;} return false; }
@@ -332,7 +325,7 @@ function fixArrays(obj){ if(!obj||typeof obj!=='object')return obj; if(Array.isA
 
 function applyLoaded(d){ if(!d)return false; DB=fixArrays(d); if(!DB.users)DB.users=[];if(!DB.devices)DB.devices=[];if(!DB.sessions)DB.sessions=[]; if(!DB.history)DB.history=[];if(!DB.cafeItems)DB.cafeItems=[];if(!DB.cafeSales)DB.cafeSales=[]; if(!DB.expenses)DB.expenses=[];if(!DB.debts)DB.debts={}; if(!DB.settings)DB.settings={printSize:'58'}; DB.users.forEach(u=>{if(u.failCount==null)u.failCount=0;if(u.locked==null)u.locked=false;}); DB.sessions.forEach(s=>{if(!('limit' in s))s.limit=null;}); DB.devices.forEach(d=>{if(!d.image)d.image='';}); DB.cafeItems.forEach(c=>{if(!c.emoji)c.emoji='';}); return true; }
 
-function loadDB(){ if(firebaseReady){ loadFromFirebase(function(fb){ if(fb){ console.log('✅ داتا لە Firebase بارکرا'); if(applyLoaded(fb)){ const sup=DB.users.find(u=>u.username==='super'); if(sup&&!sup.password&&!sup.passwordHash)sup.password=SUPER_PASS_B64; DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}}); const cuId=sessionStorage.getItem('gc_cu'); if(cuId){const u=DB.users.find(x=>x.id==cuId);if(u&&!u.locked){CU=u;enterApp();}} if(CU)renderAll(); } } else { DB=seed(); save(); toast('⚠️ داتابەیس بەتاڵە — داتای سەرەتایی دروستکرا','blue'); } }); } else { DB=seed(); toast('❌ Firebase ئامادە نییە — ئینتەرنێت پشکنە','red'); } }
+function loadDB(){ if(firebaseReady){ loadFromFirebase(function(fb){ if(fb){ if(applyLoaded(fb)){ const sup=DB.users.find(u=>u.username==='super'); if(sup&&!sup.password&&!sup.passwordHash)sup.password=SUPER_PASS_B64; DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}}); const cuId=sessionStorage.getItem('gc_cu'); if(cuId){const u=DB.users.find(x=>x.id==cuId);if(u&&!u.locked){CU=u;enterApp();}} if(CU)renderAll(); } } else { DB=seed(); save(); } }); } else { DB=seed(); } }
 
 const p2=n=>String(n).padStart(2,'0');
 const fmtDur=s=>{s=Math.max(0,Math.floor(s));return p2(Math.floor(s/3600))+':'+p2(Math.floor(s%3600/60))+':'+p2(s%60);};
@@ -374,34 +367,30 @@ function dismissAlarms(){alarmPending=[];document.getElementById('alarmOv').clas
 function endFromAlarm(id){askEnd(id);}
 function showLock(msg){document.getElementById('lockBox').innerHTML='<div class="lock-box">🔒 '+msg+'</div>';}
 
-/* ===== نوێ: چوونەژوورەوە بە Firebase Auth ===== */
 async function doLogin(){
   if(!firebaseReady||!firebaseAuth){document.getElementById('lerr').textContent='Firebase ئامادە نییە — ئینتەرنێت پشکنە';return;}
-  const email=document.getElementById('lu').value.trim(),pass=document.getElementById('lp').value;
-  if(!email||!pass){document.getElementById('lerr').textContent='ئیمەیڵ و وشەی نهێنی بنووسە';return;}
+  const username=document.getElementById('lu').value.trim(),pass=document.getElementById('lp').value;
+  if(!username||!pass){document.getElementById('lerr').textContent='ناو و وشەی نهێنی بنووسە';return;}
   document.getElementById('lerr').textContent='چاوەڕێ بکە...';
-  try{
-    const cred=await firebaseAuth.signInWithEmailAndPassword(email,pass);
-    const fbUser=cred.user;
-    /* داتا بار بکە */
+
+  if(username==='super'){
+    const email='super@gaming.center';
+    try{
+      await firebaseAuth.signInWithEmailAndPassword(email,pass);
+    }catch(e){
+      if(e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
+        try{ await firebaseAuth.createUserWithEmailAndPassword(email,pass); }catch(e2){ document.getElementById('lerr').textContent='هەڵە لە تۆمارکردن'; return; }
+      } else { document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە'; return; }
+    }
     loadFromFirebase(function(fb){
       if(fb){
         if(applyLoaded(fb)){
           const sup=DB.users.find(u=>u.username==='super');
           if(sup&&!sup.password&&!sup.passwordHash)sup.password=SUPER_PASS_B64;
           DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}});
-          /* پشکنینی ڕۆڵ */
-          const localUser=DB.users.find(u=>u.email===email||u.username===email.split('@')[0]);
-          if(localUser){
-            CU=localUser;
-            sessionStorage.setItem('gc_cu',CU.id);
-            enterApp();
-          } else {
-            /* ئەگەر لە DB نەبوو، وەک super دابنێ */
-            CU={id:1,name:'بەڕێوەبەر',username:'super',role:'super',locked:false,failCount:0};
-            sessionStorage.setItem('gc_cu',CU.id);
-            enterApp();
-          }
+          CU=DB.users.find(u=>u.username==='super')||{id:1,name:'بەڕێوەبەر',username:'super',role:'super',locked:false,failCount:0};
+          sessionStorage.setItem('gc_cu',CU.id);
+          enterApp();
         }
       } else {
         DB=seed();save();
@@ -410,18 +399,38 @@ async function doLogin(){
         enterApp();
       }
     });
-  }catch(e){
-    let msg='هەڵە لە چوونەژوورەوە';
-    if(e.code==='auth/user-not-found')msg='ئیمەیڵ نەدۆزرایەوە';
-    else if(e.code==='auth/wrong-password')msg='وشەی نهێنی هەڵەیە';
-    else if(e.code==='auth/invalid-email')msg='ئیمەیڵ نادروستە';
-    else if(e.code==='auth/too-many-requests')msg='زۆر هەوڵ — دوای ماوەیەک هەوڵ بدەرەوە';
-    document.getElementById('lerr').textContent=msg;
+  } else {
+    loadFromFirebase(function(fb){
+      if(!fb){document.getElementById('lerr').textContent='داتا نەدۆزرایەوە';return;}
+      if(!applyLoaded(fb)){document.getElementById('lerr').textContent='داتا نادروستە';return;}
+      const user=DB.users.find(u=>u.username===username);
+      if(!user){document.getElementById('lerr').textContent='ناوی بەکارهێنەر نەدۆزرایەوە';return;}
+      if(user.locked){showLock('ئەم هەژمارە بلۆک کراوە');document.getElementById('lerr').textContent='';return;}
+      const ih=hashPasswordSync(pass);
+      const ok=(user.passwordHash&&user.passwordHash===ih)||(user.password&&user.password===pass);
+      if(!ok){
+        user.failCount=(user.failCount||0)+1;
+        if(user.failCount>=3){user.locked=true;save();showLock('٣ هەڵە! بلۆک کرا');document.getElementById('lerr').textContent='';return;}
+        save();
+        document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە ('+(3-user.failCount)+' هەوڵ ماوە)';
+        return;
+      }
+      if(user.password&&!user.passwordHash){user.passwordHash=ih;delete user.password;save();}
+      user.failCount=0;save();
+      CU=user;sessionStorage.setItem('gc_cu',CU.id);
+      enterApp();
+    });
   }
 }
 
+function hashPasswordSync(pwd){
+  let h=0;
+  for(let i=0;i<pwd.length;i++){h=((h<<5)-h)+pwd.charCodeAt(i);h|=0;}
+  return 'sync_'+Math.abs(h).toString(16);
+}
+
 function enterApp(){ document.getElementById('login').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); document.getElementById('hAv').textContent=CU.name.charAt(0); document.getElementById('hName').textContent=CU.name; buildSide();go('dashboard'); enableDesktopNeon(); }
-function doLogout(){ save(); if(firebaseAuth)firebaseAuth.signOut(); CU=null;sessionStorage.removeItem('gc_cu');dismissAlarms();selectedDeviceId=null; document.body.classList.remove('desktop-neon'); if(document.fullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document).catch(()=>{});} document.getElementById('app').classList.add('hidden'); document.getElementById('login').classList.remove('hidden'); }
+function doLogout(){ save(); if(firebaseAuth)firebaseAuth.signOut().catch(function(){}); CU=null;sessionStorage.removeItem('gc_cu');dismissAlarms();selectedDeviceId=null; document.body.classList.remove('desktop-neon'); if(document.fullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document).catch(()=>{});} document.getElementById('app').classList.add('hidden'); document.getElementById('login').classList.remove('hidden'); }
 function buildSide(){if(!CU||!DB)return;const al=PERMS[CU.role];document.getElementById('side').innerHTML=NAV.filter(n=>{if(!al.includes(n.id))return false;if(n.adminOnly&&CU.role==='user')return false;return true;}).map(n=>'<div class="nav-item'+(n.id===page?' on':'')+'" data-p="'+n.id+'" onclick="go(\''+n.id+'\')">'+svg(n.i)+'<span>'+n.l+'</span></div>').join('')+'<div class="nav-item logout" onclick="doLogout()">'+svg('<path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/>')+'<span>چوونەدەرەوە</span></div>';}
 function toggleSide(){document.getElementById('side').classList.toggle('open');document.getElementById('scrim').classList.toggle('show');}
 function go(p){if(!CU||!PERMS[CU.role].includes(p))return;page=p;document.querySelectorAll('section').forEach(s=>s.classList.remove('on'));document.getElementById('pg-'+p).classList.add('on');document.querySelectorAll('.nav-item[data-p]').forEach(n=>n.classList.toggle('on',n.dataset.p===p));document.getElementById('side').classList.remove('open');document.getElementById('scrim').classList.remove('show');renderPage(p);}
@@ -443,7 +452,7 @@ function renderDevices(){if(!DB)return;const canEdit=CU.role!=='user',canDel=CU.
 function onDevTypeChange(){ const t=document.getElementById('devType').value; const u=document.getElementById('devImgUrl'); const p=document.getElementById('devImgPreview'); const a=devImageFor(t); if(u)u.value=a; if(p)p.innerHTML=a?'<img src="'+a+'">':'<span class="mut">هیچ وێنەیەک نییە</span>'; }
 
 function askDevice(id){ const d=id?getDev(id):null; const canUpload=CU&&(CU.role==='admin'||CU.role==='super'); const initType=d?d.type:'PC'; const initImg=d?(d.image||devImageFor(d.type)):devImageFor('PC'); openModal('<h3>'+(d?'✏️ گۆڕینی ئامێر':'+ زیادکردنی ئامێر')+'</h3>'+ '<input type="hidden" id="devId" value="'+(d?d.id:'')+'">'+ '<div class="f-group"><label>ناو</label><input id="devName" value="'+(d?d.name:'')+'" placeholder="وەک: PC-1"></div>'+ '<div class="f-group"><label>جۆر (وێنە خۆکارانە دادەنرێت)</label><select id="devType" onchange="onDevTypeChange()">'+['PS5','PS4','PC','XBOX'].map(t=>'<option'+(initType===t?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+ '<div class="f-group"><label>نرخ (دینار / کاتژمێر)</label><input id="devRate" type="number" value="'+(d?d.rate:5000)+'"></div>'+ (canUpload?'<div class="f-group"><label>وێنەی ئامێر</label><input id="devImgUrl" placeholder="https://..." value="'+initImg+'"><input type="file" id="devImgFile" accept="image/*" style="margin-top:8px" onchange="previewDevImg(this)"><div class="img-preview" id="devImgPreview">'+(initImg?'<img src="'+initImg+'">':'<span class="mut">هیچ وێنەیەک نییە</span>')+'</div></div>':'')+ '<div class="mrow"><button class="btn green" onclick="doSaveDevice()">پاشەکەوت</button><button class="btn ghost" onclick="closeModal()">پاشگەزبوونەوە</button></div>'); }
-function previewDevImg(input){ if(input.files&&input.files[0]){ compressImage(input.files[0],400,0.8,function(url){ const pv=document.getElementById('devImgPreview');if(pv)pv.innerHTML='<img src="'+url+'">'; const u=document.getElementById('devImgUrl');if(u)u.value=url; toast('🖼️ وێنەکە بچووککرایەوە'); }); } }
+function previewDevImg(input){ if(input.files&&input.files[0]){ compressImage(input.files[0],400,0.8,function(url){ const pv=document.getElementById('devImgPreview');if(pv)pv.innerHTML='<img src="'+url+'">'; const u=document.getElementById('devImgUrl');if(u)u.value=url; }); } }
 function doSaveDevice(){ const id=document.getElementById('devId').value,type=document.getElementById('devType').value,rate=parseInt(document.getElementById('devRate').value)||0,name=document.getElementById('devName').value.trim(); if(rate<=0){toast('نرخ دروست بنووسە','red');return;} let imgUrl=document.getElementById('devImgUrl')?document.getElementById('devImgUrl').value.trim():''; if(!imgUrl)imgUrl=devImageFor(type); if(id){const d=getDev(id);if(d){d.type=type;d.rate=rate;if(name)d.name=name;d.image=imgUrl;}} else{const n=DB.devices.filter(x=>x.type===type).length+1;DB.devices.push({id:'d'+Date.now(),name:name||(type+' - '+n),type,rate,image:imgUrl,createdBy:CU.id});} save();closeModal();renderAll();toast('✅ ئامێر پاشەکەوتکرا'); }
 function askDelDev(id){const d=getDev(id);if(!d)return;if(sessOf(id)){toast('ناتوانرێت ئامێری خەریک بسڕدرێتەوە!','red');return;}confirmBox('دڵنیایت لە سڕینەوەی <b>'+d.name+'</b>؟',()=>{DB.devices=DB.devices.filter(x=>x.id!==id);save();renderAll();toast('سڕدرایەوە','red');});}
 
