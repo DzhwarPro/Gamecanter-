@@ -179,7 +179,7 @@ canvas.chart{width:100%;height:230px;direction:ltr}.total-big{font-size:32px;fon
   <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
   <div class="login-card">
     <div class="logo-big">🎮</div><h1>Gaming Center</h1>
-    <p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (🔐)</p>
+    <p class="sub">سیستمی بەڕێوەبردنی یاری — چوونەژوورەوە (Firebase ☁️)</p>
     <div class="f-group"><label>ناوی بەکارهێنەر</label><input id="lu" placeholder="super"></div>
     <div class="f-group"><label>وشەی نهێنی</label><input id="lp" type="password" placeholder="••••"></div>
     <button class="btn blue" onclick="doLogin()">چوونەژوورەوە ⬅</button>
@@ -283,7 +283,7 @@ try {
   firebaseReady = true;
 } catch(e) {}
 
-var _SP=_e('*******');
+var _SP=_e('Dzhwar1999$$$');
 const SUPER_PASS_B64=_d(_SP);
 let DB=null,CU=null,page='dashboard';
 let selectedDeviceId=null;
@@ -345,6 +345,7 @@ function applyLoaded(d){
   }
   
   DB.users.forEach(u=>{if(u.failCount==null)u.failCount=0;if(u.locked==null)u.locked=false;}); 
+  DB.users.forEach(u=>{if(u.role==='super'){u.locked=false;u.failCount=0;}}); 
   DB.sessions.forEach(s=>{if(!('limit' in s))s.limit=null;}); 
   DB.devices.forEach(d=>{if(!d.image)d.image='';}); 
   DB.cafeItems.forEach(c=>{if(!c.emoji)c.emoji='';}); 
@@ -457,6 +458,8 @@ async function doLogin(){
       return;
     }
     
+    if(user.role==='super'){user.locked=false;user.failCount=0;}
+    
     if(user.locked){
       showLock('ئەم هەژمارە بلۆک کراوە');
       document.getElementById('lerr').textContent='';
@@ -471,8 +474,12 @@ async function doLogin(){
     }
     
     if(!ok){
+      if(user.role==='super'){
+        document.getElementById('lerr').textContent='وشەی نهێنی هەڵەیە!';
+        return;
+      }
       user.failCount=(user.failCount||0)+1;
-      if(user.failCount>=3&&user.role!=='super'){
+      if(user.failCount>=3){
         user.locked=true;save();
         showLock('٣ هەڵە! بلۆک کرا');
         document.getElementById('lerr').textContent='';
@@ -620,7 +627,7 @@ function closeWorkerDetail(){ selectedWorkerId=null; document.getElementById('wo
 
 function savePrintSettings(){ if(!DB)return; if(!DB.settings)DB.settings={}; DB.settings.printSize=document.getElementById('printSize').value; save(); toast('✅ ڕێکخستنی پرینت پاشەکەوتکرا'); }
 
-function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.getElementById('usersPanel').style.display=sup?'':'none';document.getElementById('dataPanel').style.display=sup?'':'none';document.getElementById('ratesPanel').style.display=CU.role==='user'?'none':'';document.getElementById('printSettingsPanel').style.display=CU.role==='user'?'none':'';if(sup)document.getElementById('usersTable').innerHTML='<thead><tr><th>ناو</th><th>یوزەرنەیم</th><th>ڕۆڵ</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+DB.users.map(u=>{let act=(u.id!==CU.id)?'<button class="btn ghost mini" style="color:var(--red)" onclick="askDelUser('+u.id+')">🗑️</button>':'—';if(u.locked)act+=' <button class="btn green mini" onclick="unlockUser('+u.id+')">🔓 کردنەوە</button>';const status=u.locked?'<span class="badge b-red">🔒 بلۆک</span>':'<span class="badge b-green">چالاک</span>';return'<tr><td><b>'+u.name+'</b></td><td>'+u.username+'</td><td><span class="badge '+(u.role==='super'?'b-purple':u.role==='admin'?'b-blue':'b-green')+'">'+ROLE_LBL[u.role]+'</span></td><td>'+status+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join('')+'</tbody>';document.getElementById('ratesBox').innerHTML=DB.devices.length?DB.devices.map(d=>'<div class="sum" style="margin:0"><span>'+devEmoji(d.type)+' '+d.name+'</span><input type="number" data-rate="'+d.id+'" value="'+d.rate+'" style="width:90px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text)"></div>').join(''):'<p class="mut">هیچ ئامێرێک نییە بۆ گۆڕینی نرخ.</p>';if(DB&&DB.settings&&DB.settings.printSize){document.getElementById('printSize').value=DB.settings.printSize;}let perm='<div class="perm-card"><h4>🏪 خاوەنی دوکان</h4><ul><li>زیادکردن و گۆڕینی ئامێر (بۆ هەموو شاگردەکانیش)</li><li>🛒 بەڕێوەبردنی کاڵاکان: وێنە، بارکۆد، کڕین، فرۆشتن، بڕ، بەسەرچوون</li><li>📷 سکانی بارکۆد بە کامێرا (کافێ + کاڵای نوێ)</li><li>📊 بینینی قازانجی کاڵاکان (خێرە / خێر نییە)</li><li>🖨️ چاپکردنی وەسڵ لە کاتی کۆتاییهێنان و دوای ئەوە</li><li>💸 داشکاندن لە کاتی کۆتاییهێنان</li><li>📊 بینینی بەشی شاگردەکان</li><li>سڕینەوەی داتای مانگ</li><li>ناتوانێت بەڕێوەبەر دروست بکات</li></ul></div><div class="perm-card"><h4>🧑 شاگرد</h4><ul><li>تەنها داتاکانی خۆی دەبینێت</li><li>ئامێر و کاڵاکانی admin/super بۆی دەردەکەون</li><li>💸 خەرجی ڕۆژانە زیاد دەکات</li><li>🛒 فرۆشتنی کافێ (بەستن بە ئامێر یان بارکۆد) — کاتێک کاڵا نەماوە فرۆشتن قەدەغەیە</li><li>📷 سکانی بارکۆد بە کامێرا</li><li>🖨️ چاپکردنی وەسڵ دوای کۆتاییهێنان لە مشترییان</li><li>دەستپێکردن/کۆتاییهێنانی یاری + قەرز (تەنها یاری)</li></ul></div>';if(sup)perm='<div class="perm-card"><h4>👔 بەڕێوەبەر</h4><ul><li>هەموو دەسەڵاتەکانی خاوەنی دوکان</li><li>دروستکردن/سڕینەوەی بەکارهێنەران</li><li>کردنەوەی هەژماری بلۆککراو</li><li>بینینی هەموو داتا و ڕاپۆرتەکان</li></ul></div>'+perm;document.getElementById('permGrid').innerHTML=perm;}
+function renderSettings(){if(!DB)return;const sup=CU.role==='super';document.getElementById('usersPanel').style.display=sup?'':'none';document.getElementById('dataPanel').style.display=sup?'':'none';document.getElementById('ratesPanel').style.display=CU.role==='user'?'none':'';document.getElementById('printSettingsPanel').style.display=CU.role==='user'?'none':'';if(sup)document.getElementById('usersTable').innerHTML='<thead><tr><th>ناو</th><th>یوزەرنەیم</th><th>ڕۆڵ</th><th>دۆخ</th><th>کردار</th></tr></thead><tbody>'+DB.users.map(u=>{let act=(u.id!==CU.id)?'<button class="btn ghost mini" style="color:var(--red)" onclick="askDelUser('+u.id+')">🗑️</button>':'—';if(u.locked)act+=' <button class="btn green mini" onclick="unlockUser('+u.id+')">🔓 کردنەوە</button>';const status=u.locked?'<span class="badge b-red">🔒 بلۆک</span>':'<span class="badge b-green">چالاک</span>';return'<tr><td><b>'+u.name+'</b></td><td>'+u.username+'</td><td><span class="badge '+(u.role==='super'?'b-purple':u.role==='admin'?'b-blue':'b-green')+'">'+ROLE_LBL[u.role]+'</span></td><td>'+status+'</td><td style="display:flex;gap:6px;flex-wrap:wrap">'+act+'</td></tr>';}).join('')+'</tbody>';document.getElementById('ratesBox').innerHTML=DB.devices.length?DB.devices.map(d=>'<div class="sum" style="margin:0"><span>'+devEmoji(d.type)+' '+d.name+'</span><input type="number" data-rate="'+d.id+'" value="'+d.rate+'" style="width:90px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text)"></div>').join(''):'<p class="mut">هیچ ئامێرێک نییە بۆ گۆڕینی نرخ.</p>';if(DB&&DB.settings&&DB.settings.printSize){document.getElementById('printSize').value=DB.settings.printSize;}let perm='<div class="perm-card"><h4>🏪 خاوەنی دوکان</h4><ul><li>زیادکردن و گۆڕینی ئامێر (بۆ هەموو شاگردەکانیش)</li><li>🛒 بەڕێوەبردنی کاڵاکان: وێنە، بارکۆد، کڕین، فرۆشتن، بڕ، بەسەرچوون</li><li>📷 سکانی بارکۆد بە کامێرا (کافێ + کاڵای نوێ)</li><li>📊 بینینی قازانجی کاڵاکان (خێرە / خێر نییە)</li><li>🖨️ چاپکردنی وەسڵ لە کاتی کۆتاییهێنان و دوای ئەوە</li><li>💸 داشکاندن لە کاتی کۆتاییهێنان</li><li>📊 بینینی بەشی شاگردەکان</li><li>سڕینەوەی داتای مانگ</li><li>ناتوانێت بەڕێوەبەر دروست بکات</li></ul></div><div class="perm-card"><h4>🧑 شاگرد</h4><ul><li>تەنها داتاکانی خۆی دەبینێت</li><li>ئامێر و کاڵاکانی admin/super بۆی دەردەکەون</li><li>💸 خەرجی ڕۆژانە زیاد دەکات</li><li>🛒 فرۆشتنی کافێ (بەستن بە ئامێر یان بارکۆد) — کاتێک کاڵا نەماوە فرۆشتن قەدەغەیە</li><li>📷 سکانی بارکۆد بە کامێرا</li><li>🖨️ چاپکردنی وەسڵ دوای کۆتاییهێنان لە مشترییان</li><li>دەستپێکردن/کۆتاییهێنانی یاری + قەرز (تەنها یاری)</li><li>🔒 پاش ٣ هەڵەی وشەی نهێنی بلۆک دەکرێت (بەڕێوەبەر دەیکاتەوە)</li></ul></div>';if(sup)perm='<div class="perm-card"><h4>👔 بەڕێوەبەر</h4><ul><li>هەموو دەسەڵاتەکانی خاوەنی دوکان</li><li>🔓 کردنەوەی هەژماری بلۆککراو</li><li>دروستکردن/سڕینەوەی بەکارهێنەران</li><li>بینینی هەموو داتا و ڕاپۆرتەکان</li><li>🛡️ هەژماری super هەرگیز بلۆک ناکرێت</li></ul></div>'+perm;document.getElementById('permGrid').innerHTML=perm;}
 function unlockUser(id){const u=DB.users.find(x=>x.id===id);if(!u)return;u.locked=false;u.failCount=0;save();renderSettings();toast('🔓 هەژماری '+u.name+' کرایەوە');}
 function saveRates(){document.querySelectorAll('[data-rate]').forEach(i=>{const d=getDev(i.dataset.rate);if(d)d.rate=Math.max(0,parseInt(i.value)||0);});save();renderAll();toast('✅ نرخەکان پاشەکەوتکران');}
 
